@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CONTROLE FINANCEIRO</title>
+    <meta name="description" content="CONTROLE INTERNO" />
+    <meta name="author" content="Complexo Terapêutico" />
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         Content Security Policy (CSP)
+         Protege contra XSS, clickjacking e injeção de conteúdo malicioso.
+
+         Domínios permitidos:
+           - *.supabase.co  → API, Auth e Edge Functions do Supabase
+           - accounts.google.com → OAuth do Google
+           - *.googleapis.com   → APIs do Google (OAuth)
+           - fonts.gstatic.com  → Fontes do Google (se usadas)
+
+         IMPORTANTE: Ao fazer deploy em produção, substitua 'self' pelo
+         domínio real do seu app e remova 'unsafe-inline' do style-src
+         adicionando um hash ou nonce gerado pelo servidor.
+    ════════════════════════════════════════════════════════════════════ -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline';
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com;
+      img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com;
+      connect-src 'self'
+        https://*.supabase.co
+        wss://*.supabase.co
+        https://accounts.google.com
+        https://*.googleapis.com;
+      frame-src https://accounts.google.com;
+      form-action 'self';
+      base-uri 'self';
+      object-src 'none';
+      upgrade-insecure-requests;
+    "
+    />
+
+    <!-- Impede que o site seja carregado em iframes (proteção contra clickjacking) -->
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+
+    <!-- Impede que o navegador faça sniffing do tipo MIME -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+
+    <!-- Controla informações de referência enviadas em requisições -->
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="CONTROLE FINANCEIRO" />
+    <meta property="og:description" content="CONTROLE INTERNO" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="CONTROLE FINANCEIRO" />
+    <meta name="twitter:description" content="CONTROLE INTERNO" />
+  </head>
+
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
