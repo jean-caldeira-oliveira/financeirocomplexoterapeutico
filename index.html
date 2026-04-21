@@ -31,35 +31,17 @@
          domínio real do seu app e remova 'unsafe-inline' do style-src
          adicionando um hash ou nonce gerado pelo servidor.
     ════════════════════════════════════════════════════════════════════ -->
-    <meta
-      http-equiv="Content-Security-Policy"
-      content="
-      default-src 'self';
-      script-src 'self' 'unsafe-inline';
-      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-      font-src 'self' https://fonts.gstatic.com;
-      img-src 'self' data: blob: https://*.supabase.co https://lh3.googleusercontent.com;
-      connect-src 'self'
-        https://*.supabase.co
-        wss://*.supabase.co
-        https://accounts.google.com
-        https://*.googleapis.com;
-      frame-src https://accounts.google.com;
-      form-action 'self';
-      base-uri 'self';
-      object-src 'none';
-      upgrade-insecure-requests;
-    "
-    />
+    <!--
+      CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy,
+      Strict-Transport-Security e Permissions-Policy são definidos como
+      HTTP response headers no vercel.json (mais seguros e respeitados
+      por todos os browsers). As meta tags equivalentes foram removidas
+      para evitar duplicação e inconsistência.
 
-    <!-- Impede que o site seja carregado em iframes (proteção contra clickjacking) -->
-    <meta http-equiv="X-Frame-Options" content="DENY" />
-
-    <!-- Impede que o navegador faça sniffing do tipo MIME -->
-    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
-
-    <!-- Controla informações de referência enviadas em requisições -->
-    <meta name="referrer" content="strict-origin-when-cross-origin" />
+      NOTA: 'unsafe-inline' foi removido de script-src. O Vite gera
+      apenas <script type="module" src="/assets/..."> sem scripts inline,
+      portanto 'self' é suficiente para o build de produção.
+    -->
 
     <meta property="og:type" content="website" />
     <meta property="og:title" content="CONTROLE FINANCEIRO" />
