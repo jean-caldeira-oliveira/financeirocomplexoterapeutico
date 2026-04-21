@@ -30,6 +30,12 @@ jobs:
         run: mkdir -p /tmp/backups
 
       # ── 3. Dump the database ────────────────────────────────────────────────
+      # Uses the Supabase Session Mode pooler (port 5432) which is reachable
+      # from GitHub Actions. The host format is:
+      #   aws-0-<region>.pooler.supabase.com
+      # Find it in: Supabase Dashboard → Project Settings → Database
+      #   → Connection string → Session mode → copy the host
+      # Store it in SUPABASE_DB_HOST secret (replace the direct db.xxx host).
       - name: Run pg_dump
         env:
           PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
@@ -38,7 +44,7 @@ jobs:
           pg_dump \
             --host="${{ secrets.SUPABASE_DB_HOST }}" \
             --port=5432 \
-            --username=postgres \
+            --username="postgres.zgthjlrdgjbfwvwxbijz" \
             --dbname=postgres \
             --format=custom \
             --compress=9 \
