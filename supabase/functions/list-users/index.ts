@@ -8,7 +8,7 @@ const corsHeaders = {
   "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
 serve(async (req) => {
@@ -16,7 +16,7 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  if (req.method !== "GET") {
+  if (req.method !== "GET" && req.method !== "POST") {
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -32,29 +32,49 @@ serve(async (req) => {
       });
     }
 
-    const supabaseClient = createClient(
+    // Usar service role para todas as operações (bypass RLS)
+    const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
-      { global: { headers: { Authorization: authHeader } } }
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
+    // Verificar token JWT extraindo o token do header
+    const token = authHeader.replace("Bearer ", "");
     const {
       data: { user: currentUser },
       error: userError,
-    } = await supabaseClient.auth.getUser();
+    } = await supabaseAdmin.auth.getUser(token);
+
     if (userError || !currentUser) {
-      return new Response(JSON.stringify({ error: "Unauthorized" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return new Response(
+        JSON.stringify({ error: "Unauthorized", detail: userError?.message }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
-    const { data: roleData } = await supabaseClient
+    // Verificar se o usuário tem role admin
+    const { data: roleData, error: roleError } = await supabaseAdmin
       .from("user_roles")
       .select("role")
       .eq("user_id", currentUser.id)
       .eq("role", "admin")
       .maybeSingle();
+
+    if (roleError) {
+      return new Response(
+        JSON.stringify({
+          error: "Error checking role",
+          detail: roleError.message,
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
     if (!roleData) {
       return new Response(
@@ -66,15 +86,11 @@ serve(async (req) => {
       );
     }
 
-    const supabaseAdmin = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    );
-
     const {
       data: { users },
       error: listError,
     } = await supabaseAdmin.auth.admin.listUsers();
+
     if (listError) {
       return new Response(JSON.stringify({ error: listError.message }), {
         status: 400,
@@ -83,7 +99,6 @@ serve(async (req) => {
     }
 
     const { data: roles } = await supabaseAdmin.from("user_roles").select("*");
-
     const { data: profiles } = await supabaseAdmin.from("profiles").select("*");
 
     const usersWithData = users.map((user) => {
@@ -106,9 +121,13 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: "Internal server error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    const message = error instanceof Error ? error.message : String(error);
+    return new Response(
+      JSON.stringify({ error: "Internal server error", detail: message }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   }
 });
