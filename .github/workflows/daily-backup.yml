@@ -6,6 +6,11 @@ on:
     - cron: "0 3 * * *"
   workflow_dispatch: # Allow manual trigger from GitHub Actions UI
 
+# Permissions needed: write issues on failure, read contents
+permissions:
+  contents: read
+  issues: write
+
 jobs:
   backup:
     name: pg_dump → encrypt → upload to R2
@@ -13,19 +18,18 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      # ── 1. Install PostgreSQL client ────────────────────────────────────────
-      - name: Install PostgreSQL client
+      # ── 1. Install dependencies ─────────────────────────────────────────────
+      - name: Install dependencies
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y postgresql-client gnupg awscli
+          sudo apt-get install -y postgresql-client gnupg python3-pip
+          pip3 install awscli --quiet
 
       # ── 2. Create working directory ─────────────────────────────────────────
       - name: Prepare workspace
         run: mkdir -p /tmp/backups
 
       # ── 3. Dump the database ────────────────────────────────────────────────
-      # SUPABASE_DB_HOST  → Project Settings → Database → Host
-      # SUPABASE_DB_PASSWORD → Project Settings → Database → Password
       - name: Run pg_dump
         env:
           PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
@@ -45,9 +49,6 @@ jobs:
           ls -lh /tmp/backups/
 
       # ── 4. Encrypt with GPG (AES-256) ───────────────────────────────────────
-      # GPG_PASSPHRASE → a strong random passphrase stored in GitHub Secrets.
-      # IMPORTANT: store this passphrase in a password manager — losing it
-      # means losing access to ALL encrypted backups.
       - name: Encrypt backup
         run: |
           DATE=$(date +%Y-%m-%d)
@@ -59,16 +60,11 @@ jobs:
                 --output "/tmp/backups/backup-${DATE}.dump.gpg" \
                 "/tmp/backups/backup-${DATE}.dump"
 
-          # Remove unencrypted dump immediately
           rm "/tmp/backups/backup-${DATE}.dump"
           echo "✅ Backup encrypted:"
           ls -lh /tmp/backups/
 
-      # ── 5. Upload to Cloudflare R2 (S3-compatible) ──────────────────────────
-      # R2_ACCESS_KEY_ID     → Cloudflare Dashboard → R2 → Manage R2 API Tokens
-      # R2_SECRET_ACCESS_KEY → same as above
-      # R2_ENDPOINT_URL      → https://<account-id>.r2.cloudflarestorage.com
-      # R2_BUCKET_NAME       → name of your R2 bucket (e.g. clinica-backups)
+      # ── 5. Upload to Cloudflare R2 ──────────────────────────────────────────
       - name: Upload to Cloudflare R2
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
@@ -82,7 +78,7 @@ jobs:
             "s3://${{ secrets.R2_BUCKET_NAME }}/clinica/backup-${DATE}.dump.gpg" \
             --no-progress
 
-          echo "✅ Backup uploaded to R2: clinica/backup-${DATE}.dump.gpg"
+          echo "✅ Backup uploaded: clinica/backup-${DATE}.dump.gpg"
 
       # ── 6. Prune backups older than 30 days ─────────────────────────────────
       - name: Delete backups older than 30 days
@@ -123,6 +119,7 @@ jobs:
         if: failure()
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             const today = new Date().toISOString().split('T')[0];
             await github.rest.issues.create({
@@ -138,5 +135,4 @@ jobs:
                 '',
                 '**Action required:** Check the Actions log immediately and perform a manual backup if needed.',
               ].join('\n'),
-              labels: ['backup', 'critical'],
             });
