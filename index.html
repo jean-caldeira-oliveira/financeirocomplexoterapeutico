@@ -7,6 +7,16 @@
     <meta name="description" content="CONTROLE INTERNO" />
     <meta name="author" content="Complexo Terapêutico" />
 
+    <!-- Resource hints: open TCP connections to external origins early so
+         auth and API calls don't stall the render-blocking waterfall.
+         Addresses the "Latência da solicitação de documentos" Lighthouse insight. -->
+    <link rel="preconnect" href="https://accounts.google.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://accounts.google.com" />
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+
     <!-- ═══════════════════════════════════════════════════════════════════
          Content Security Policy (CSP)
          Protege contra XSS, clickjacking e injeção de conteúdo malicioso.

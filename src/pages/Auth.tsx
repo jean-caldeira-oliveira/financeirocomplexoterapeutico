@@ -141,6 +141,8 @@ const Auth = () => {
               src={logo}
               alt="Complexo Terapêutico"
               className="h-20 mx-auto"
+              width="80"
+              height="80"
             />
           </div>
           <CardTitle className="text-xl">Acesso ao Sistema</CardTitle>
