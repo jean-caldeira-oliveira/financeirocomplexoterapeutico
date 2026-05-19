@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import { AddBillData } from "@/hooks/useBills";
 import { useCustomCategories } from "@/hooks/useCustomCategories";
 import { BillRecurrence, billRecurrenceLabels } from "@/types/bill";
@@ -42,6 +43,7 @@ export function BillForm({ onSubmit }: BillFormProps) {
   const [recurrence, setRecurrence] = useState<BillRecurrence>("none");
   const [isInstallment, setIsInstallment] = useState(false);
   const [installments, setInstallments] = useState("2");
+  const [notes, setNotes] = useState("");
 
   const currentSubs = allGroupSubcategories[categoryGroup] || [];
 
@@ -57,6 +59,7 @@ export function BillForm({ onSubmit }: BillFormProps) {
       subcategory: category,
       recurrence: isInstallment ? "none" : recurrence,
       installments: isInstallment ? parseInt(installments) : undefined,
+      notes: notes.trim() || undefined,
     });
 
     setDescription("");
@@ -67,6 +70,7 @@ export function BillForm({ onSubmit }: BillFormProps) {
     setRecurrence("none");
     setIsInstallment(false);
     setInstallments("2");
+    setNotes("");
     setOpen(false);
   };
 
@@ -221,6 +225,17 @@ export function BillForm({ onSubmit }: BillFormProps) {
                 </SelectContent>
               </Select>
             </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="notes">Observações</Label>
+            <Textarea
+              id="notes"
+              placeholder="Informações adicionais sobre esta conta..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+            />
           </div>
 
           <Button type="submit" className="w-full">

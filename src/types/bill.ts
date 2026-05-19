@@ -1,16 +1,26 @@
-export type BillPaymentMethod = 'pix' | 'dinheiro' | 'cartao' | 'transferencia' | 'boleto';
+export type BillPaymentMethod =
+  | "pix"
+  | "dinheiro"
+  | "cartao"
+  | "transferencia"
+  | "boleto";
 
 export const billPaymentMethodLabels: Record<BillPaymentMethod, string> = {
-  pix: 'PIX',
-  dinheiro: 'Dinheiro',
-  cartao: 'Cartão',
-  transferencia: 'Transferência',
-  boleto: 'Boleto',
+  pix: "PIX",
+  dinheiro: "Dinheiro",
+  cartao: "Cartão",
+  transferencia: "Transferência",
+  boleto: "Boleto",
 };
 
-export type BillStatus = 'pending' | 'paid' | 'overdue';
+export type BillStatus = "pending" | "paid" | "overdue";
 
-export type BillRecurrence = 'none' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
+export type BillRecurrence =
+  | "none"
+  | "weekly"
+  | "biweekly"
+  | "monthly"
+  | "yearly";
 
 export interface Bill {
   id: string;
@@ -27,19 +37,21 @@ export interface Bill {
   paymentDate?: string;
   paidAmount?: number;
   paymentMethod?: BillPaymentMethod;
+  notes?: string;
+  paymentNotes?: string;
   createdAt: string;
 }
 
 export const billStatusLabels: Record<BillStatus, string> = {
-  pending: 'Pendente',
-  paid: 'Pago',
-  overdue: 'Atrasado',
+  pending: "Pendente",
+  paid: "Pago",
+  overdue: "Atrasado",
 };
 
 export const billRecurrenceLabels: Record<BillRecurrence, string> = {
-  none: 'Sem recorrência',
-  weekly: 'Semanal',
-  biweekly: 'Quinzenal',
-  monthly: 'Mensal',
-  yearly: 'Anual',
+  none: "Sem recorrência",
+  weekly: "Semanal",
+  biweekly: "Quinzenal",
+  monthly: "Mensal",
+  yearly: "Anual",
 };
