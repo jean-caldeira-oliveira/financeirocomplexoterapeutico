@@ -1,0 +1,21 @@
+name: Recuperar Backup
+
+on:
+  workflow_dispatch:
+
+jobs:
+  decrypt:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pegar os arquivos do repositorio
+        uses: actions/checkout@v4
+      
+      - name: Descriptografar o arquivo usando o Secret oculto
+        run: |
+          gpg --batch --yes --passphrase "${{ secrets.GPG_PASSPHRASE }}" --decrypt --output clinica_recuperada.dump clinica_backup-2026-05-19.dump.gpg
+          
+      - name: Disponibilizar o arquivo limpo para download
+        uses: actions/upload-artifact@v4
+        with:
+          name: banco-limpo-da-clinica
+          path: clinica_recuperada.dump
