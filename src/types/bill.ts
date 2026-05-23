@@ -31,6 +31,7 @@ export interface Bill {
   subcategory: string;
   status: BillStatus;
   recurrence: BillRecurrence;
+  recurrenceGroupId?: string;
   installmentNumber?: number;
   totalInstallments?: number;
   paidAt?: string;

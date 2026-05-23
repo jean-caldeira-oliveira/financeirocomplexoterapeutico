@@ -37,6 +37,7 @@ const mapRow = (row: any): Bill => ({
   subcategory: row.subcategory,
   status: row.status as BillStatus,
   recurrence: row.recurrence as BillRecurrence,
+  recurrenceGroupId: row.recurrence_group_id ?? undefined,
   installmentNumber: row.installment_number ?? undefined,
   totalInstallments: row.total_installments ?? undefined,
   paidAt: row.paid_at ?? undefined,
@@ -144,6 +145,8 @@ export function useBills() {
       const rows: any[] = [];
       const installments = data.installments || 1;
       const recurrence = data.recurrence || "none";
+      // Generate one group ID for the entire series (installments or recurrence)
+      const seriesGroupId = crypto.randomUUID();
 
       if (installments > 1) {
         for (let i = 0; i < installments; i++) {
@@ -163,6 +166,7 @@ export function useBills() {
             installment_number: i + 1,
             total_installments: installments,
             notes: data.notes ?? null,
+            recurrence_group_id: seriesGroupId,
           });
         }
       } else if (recurrence !== "none") {
@@ -182,6 +186,7 @@ export function useBills() {
             status,
             recurrence,
             notes: data.notes ?? null,
+            recurrence_group_id: seriesGroupId,
           });
           currentDueDate = getNextDueDate(currentDueDate, recurrence);
         }
@@ -200,6 +205,7 @@ export function useBills() {
           status,
           recurrence: "none",
           notes: data.notes ?? null,
+          // single bills have no group
         });
       }
 
@@ -326,6 +332,7 @@ export function useBills() {
       return;
     }
     setBills((prev) => prev.filter((b) => b.id !== id));
+    toast.success("Conta excluída");
   }, []);
 
   const deleteBillAndFuture = useCallback(
@@ -333,37 +340,69 @@ export function useBills() {
       const billToDelete = bills.find((b) => b.id === id);
       if (!billToDelete) return;
 
-      if (billToDelete.recurrence === "none") {
+      // Fallback: if no group ID, just delete the single bill
+      if (!billToDelete.recurrenceGroupId) {
         await deleteBill(id);
         return;
       }
 
-      const billDueDate = startOfDay(new Date(billToDelete.dueDate));
-      const idsToDelete = bills
-        .filter((b) => {
-          if (
-            b.description !== billToDelete.description ||
-            b.category !== billToDelete.category ||
-            b.subcategory !== billToDelete.subcategory ||
-            b.recurrence !== billToDelete.recurrence
-          )
-            return false;
-          const dueDate = startOfDay(new Date(b.dueDate));
-          return !isBefore(dueDate, billDueDate);
-        })
-        .map((b) => b.id);
+      const billDueDate = startOfDay(
+        new Date(billToDelete.dueDate)
+      ).toISOString();
 
       const { error } = await supabase
         .from("bills")
         .delete()
-        .in("id", idsToDelete);
+        .eq("recurrence_group_id", billToDelete.recurrenceGroupId)
+        .gte("due_date", billDueDate);
+
       if (error) {
         console.error("Error deleting bills:", error);
         toast.error("Erro ao excluir contas");
         return;
       }
 
-      setBills((prev) => prev.filter((b) => !idsToDelete.includes(b.id)));
+      const cutoff = startOfDay(new Date(billToDelete.dueDate));
+      setBills((prev) =>
+        prev.filter((b) => {
+          if (b.recurrenceGroupId !== billToDelete.recurrenceGroupId)
+            return true;
+          return isBefore(startOfDay(new Date(b.dueDate)), cutoff);
+        })
+      );
+      toast.success("Esta conta e as futuras foram excluídas");
+    },
+    [bills, deleteBill]
+  );
+
+  const deleteAllRecurrences = useCallback(
+    async (id: string) => {
+      const billToDelete = bills.find((b) => b.id === id);
+      if (!billToDelete) return;
+
+      // Fallback: if no group ID, just delete the single bill
+      if (!billToDelete.recurrenceGroupId) {
+        await deleteBill(id);
+        return;
+      }
+
+      const { error } = await supabase
+        .from("bills")
+        .delete()
+        .eq("recurrence_group_id", billToDelete.recurrenceGroupId);
+
+      if (error) {
+        console.error("Error deleting all recurrences:", error);
+        toast.error("Erro ao excluir série de contas");
+        return;
+      }
+
+      setBills((prev) =>
+        prev.filter(
+          (b) => b.recurrenceGroupId !== billToDelete.recurrenceGroupId
+        )
+      );
+      toast.success("Toda a série foi excluída");
     },
     [bills, deleteBill]
   );
@@ -519,6 +558,7 @@ export function useBills() {
     markAsPending,
     deleteBill,
     deleteBillAndFuture,
+    deleteAllRecurrences,
     updateBill,
     getBillsByMonth,
     getBillsActualExpenseByDateRange,

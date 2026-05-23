@@ -78,6 +78,7 @@ const Bills = () => {
     markAsPending,
     deleteBill,
     deleteBillAndFuture,
+    deleteAllRecurrences,
     updateBill,
   } = useBills();
   const { allGroupLabels, allSubcategoryLabels, allGroupSubcategories } =
@@ -599,28 +600,47 @@ const Bills = () => {
                                 </AlertDialogTitle>
                                 <AlertDialogDescription>
                                   {bill.recurrence !== "none"
-                                    ? `Escolha se deseja excluir apenas esta conta ou todas as ocorrências futuras de "${bill.description}".`
+                                    ? `"${bill.description}" faz parte de uma série recorrente. Escolha como deseja excluir:`
                                     : `Esta ação não pode ser desfeita. A conta "${bill.description}" será removida permanentemente.`}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
-                              <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                {bill.recurrence !== "none" && (
+                              <AlertDialogFooter className="flex-col gap-2 sm:flex-col">
+                                <AlertDialogCancel className="mt-0">
+                                  Cancelar
+                                </AlertDialogCancel>
+                                {bill.recurrence !== "none" ? (
+                                  <>
+                                    <AlertDialogAction
+                                      onClick={() => deleteBill(bill.id)}
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Excluir apenas esta
+                                    </AlertDialogAction>
+                                    <AlertDialogAction
+                                      onClick={() =>
+                                        deleteBillAndFuture(bill.id)
+                                      }
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Excluir esta e as futuras
+                                    </AlertDialogAction>
+                                    <AlertDialogAction
+                                      onClick={() =>
+                                        deleteAllRecurrences(bill.id)
+                                      }
+                                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                    >
+                                      Excluir toda a série
+                                    </AlertDialogAction>
+                                  </>
+                                ) : (
                                   <AlertDialogAction
-                                    onClick={() => deleteBillAndFuture(bill.id)}
+                                    onClick={() => deleteBill(bill.id)}
                                     className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
                                   >
-                                    Excluir esta e futuras
+                                    Excluir
                                   </AlertDialogAction>
                                 )}
-                                <AlertDialogAction
-                                  onClick={() => deleteBill(bill.id)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  {bill.recurrence !== "none"
-                                    ? "Excluir apenas esta"
-                                    : "Excluir"}
-                                </AlertDialogAction>
                               </AlertDialogFooter>
                             </AlertDialogContent>
                           </AlertDialog>
