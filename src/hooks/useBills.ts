@@ -476,6 +476,38 @@ export function useBills() {
     [bills]
   );
 
+  // Get actual expense (paid bills, by payment date) within [from, to]
+  const getBillsActualExpenseByDateRange = useCallback(
+    (from: Date, to: Date): number => {
+      return bills
+        .filter((b) => {
+          if (b.status !== "paid") return false;
+          const payDate = b.paymentDate
+            ? new Date(b.paymentDate)
+            : b.paidAt
+            ? new Date(b.paidAt)
+            : null;
+          if (!payDate) return false;
+          return payDate >= from && payDate <= to;
+        })
+        .reduce((sum, b) => sum + (b.paidAmount ?? b.amount), 0);
+    },
+    [bills]
+  );
+
+  // Get expected expense (all bills by due date) within [from, to]
+  const getBillsExpectedExpenseByDateRange = useCallback(
+    (from: Date, to: Date): number => {
+      return bills
+        .filter((b) => {
+          const dueDate = new Date(b.dueDate);
+          return dueDate >= from && dueDate <= to;
+        })
+        .reduce((sum, b) => sum + b.amount, 0);
+    },
+    [bills]
+  );
+
   return {
     bills,
     isLoading,
@@ -489,5 +521,7 @@ export function useBills() {
     deleteBillAndFuture,
     updateBill,
     getBillsByMonth,
+    getBillsActualExpenseByDateRange,
+    getBillsExpectedExpenseByDateRange,
   };
 }

@@ -1,4 +1,5 @@
 import logo from "@/assets/logo.png";
+import { DateRange, getPresetRange } from "@/components/DateRangeSelector";
 import { DueAlerts } from "@/components/DueAlerts";
 import { MonthSelector } from "@/components/MonthSelector";
 import { StatCard } from "@/components/StatCard";
@@ -20,7 +21,7 @@ import {
   invoiceTypeLabels,
 } from "@/types/invoice";
 import { Transaction } from "@/types/transaction";
-import { format } from "date-fns";
+import { addDays, endOfDay, format, startOfDay } from "date-fns";
 import {
   BarChart3,
   Bell,
@@ -38,6 +39,9 @@ import {
 } from "lucide-react";
 import { lazy, Suspense, useCallback, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+
+// Inline type — avoids importing from the lazy-loaded chart module
+type ChartDataPoint = { label: string; expected: number; actual: number };
 
 // Lazy-load the recharts-based chart so the heavy recharts bundle is NOT
 // included in the initial JS payload. It will be fetched only after the
@@ -164,8 +168,31 @@ function MergedTransactionList({
   );
 }
 
+// Build an array of daily buckets between from and to (inclusive, max 62 days)
+function buildDailyBuckets(from: Date, to: Date): Date[] {
+  const buckets: Date[] = [];
+  let cursor = startOfDay(from);
+  const end = startOfDay(to);
+  let safety = 0;
+  while (cursor <= end && safety < 62) {
+    buckets.push(cursor);
+    cursor = addDays(cursor, 1);
+    safety++;
+  }
+  return buckets;
+}
+
 const Index = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
+
+  // Independent date-range state for each chart (default: current month)
+  const [incomeDateRange, setIncomeDateRange] = useState<DateRange>(() =>
+    getPresetRange("month", new Date())
+  );
+  const [expenseDateRange, setExpenseDateRange] = useState<DateRange>(() =>
+    getPresetRange("month", new Date())
+  );
+
   const {
     transactions,
     allTransactions,
@@ -182,8 +209,16 @@ const Index = () => {
     getInvoicesPendingByMonth,
     getInvoicePaidAmount,
     getInvoiceRemainingAmount,
+    getInvoiceIncomeByDateRange,
+    getInvoiceExpectedIncomeByDateRange,
   } = useInvoices();
-  const { bills, addBill, getBillsByMonth } = useBills();
+  const {
+    bills,
+    addBill,
+    getBillsByMonth,
+    getBillsActualExpenseByDateRange,
+    getBillsExpectedExpenseByDateRange,
+  } = useBills();
   const { signOut } = useAuth();
   const { isAdmin } = useIsAdmin();
 
@@ -398,6 +433,87 @@ const Index = () => {
     [getInvoiceIncomeByPaymentMonth, getBillsByMonth, allTransactions]
   );
 
+  // Compute daily chart data for the income chart
+  const incomeChartData = useMemo((): ChartDataPoint[] => {
+    const buckets = buildDailyBuckets(incomeDateRange.from, incomeDateRange.to);
+    return buckets.map((day) => {
+      const dayStart = startOfDay(day);
+      const dayEnd = endOfDay(day);
+      const dateStr = format(day, "yyyy-MM-dd");
+
+      // Actual: invoice payments on this day
+      const invoiceActual = getInvoiceIncomeByDateRange(dayStart, dayEnd);
+      // Actual: manual income transactions on this day
+      const txActual = allTransactions
+        .filter(
+          (t) =>
+            t.type === "income" &&
+            (t.status === "paid" || !t.status) &&
+            t.date === dateStr
+        )
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      // Expected: invoices due on this day
+      const invoiceExpected = getInvoiceExpectedIncomeByDateRange(
+        dayStart,
+        dayEnd
+      );
+      // Expected: manual income transactions on this day (all statuses)
+      const txExpected = allTransactions
+        .filter((t) => t.type === "income" && t.date === dateStr)
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      return {
+        label: format(day, "dd/MM"),
+        expected: invoiceExpected + txExpected,
+        actual: invoiceActual + txActual,
+      };
+    });
+  }, [
+    incomeDateRange,
+    allTransactions,
+    getInvoiceIncomeByDateRange,
+    getInvoiceExpectedIncomeByDateRange,
+  ]);
+
+  // Compute daily chart data for the expense chart
+  const expenseChartData = useMemo((): ChartDataPoint[] => {
+    const buckets = buildDailyBuckets(
+      expenseDateRange.from,
+      expenseDateRange.to
+    );
+    return buckets.map((day) => {
+      const dayStart = startOfDay(day);
+      const dayEnd = endOfDay(day);
+      const dateStr = format(day, "yyyy-MM-dd");
+
+      // Actual: bills paid on this day
+      const billActual = getBillsActualExpenseByDateRange(dayStart, dayEnd);
+      // Actual: manual expense transactions on this day
+      const txActual = allTransactions
+        .filter((t) => t.type === "expense" && t.date === dateStr)
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      // Expected: bills due on this day
+      const billExpected = getBillsExpectedExpenseByDateRange(dayStart, dayEnd);
+      // Expected: manual expense transactions on this day
+      const txExpected = allTransactions
+        .filter((t) => t.type === "expense" && t.date === dateStr)
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      return {
+        label: format(day, "dd/MM"),
+        expected: billExpected + txExpected,
+        actual: billActual + txActual,
+      };
+    });
+  }, [
+    expenseDateRange,
+    allTransactions,
+    getBillsActualExpenseByDateRange,
+    getBillsExpectedExpenseByDateRange,
+  ]);
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -602,11 +718,9 @@ const Index = () => {
               }
             >
               <IncomeExpenseComparisonChart
-                title="Entradas"
-                expectedValue={aggregatedStats.expectedIncome}
-                actualValue={aggregatedStats.actualIncome}
-                selectedMonth={selectedMonth}
                 type="income"
+                data={incomeChartData}
+                onDateRangeChange={setIncomeDateRange}
               />
             </Suspense>
           </div>
@@ -626,11 +740,9 @@ const Index = () => {
               }
             >
               <IncomeExpenseComparisonChart
-                title="Saídas"
-                expectedValue={aggregatedStats.totalExpenseExpected}
-                actualValue={aggregatedStats.monthExpense}
-                selectedMonth={selectedMonth}
                 type="expense"
+                data={expenseChartData}
+                onDateRangeChange={setExpenseDateRange}
               />
             </Suspense>
           </div>
