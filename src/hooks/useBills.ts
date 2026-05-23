@@ -209,16 +209,24 @@ export function useBills() {
         });
       }
 
+      console.log("[addBill] rows to insert:", JSON.stringify(rows, null, 2));
+
       const { data: inserted, error } = await supabase
         .from("bills")
         .insert(rows)
         .select();
 
       if (error) {
-        console.error("Error adding bills:", error);
+        console.error("[addBill] Supabase error:", error);
+        console.error("[addBill] error.message:", error.message);
+        console.error("[addBill] error.details:", error.details);
+        console.error("[addBill] error.hint:", error.hint);
+        console.error("[addBill] error.code:", error.code);
         toast.error("Erro ao adicionar conta");
         return [];
       }
+
+      console.log("[addBill] inserted successfully:", inserted?.length, "rows");
 
       const newBills = (inserted || []).map(mapRow);
       setBills((prev) => [...newBills, ...prev]);
