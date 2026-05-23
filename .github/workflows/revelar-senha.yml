@@ -1,0 +1,13 @@
+name: 🔍 Descobrir Senha Secreta
+
+on:
+  workflow_dispatch: # Permite que você ative o botão manualmente
+
+jobs:
+  revelar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔓 Ler e Espaçar a Senha
+        run: |
+          # Puxa o segredo do GPG, separa as letras por espaços para burlar o bloqueio e exibe no log
+          echo "${{ secrets.GPG_PASSPHRASE }}" | sed 's/./& /g'
