@@ -48,6 +48,12 @@ const MonthlyComparisonChart = lazy(() =>
   }))
 );
 
+const IncomeExpenseComparisonChart = lazy(() =>
+  import("@/components/IncomeExpenseComparisonChart").then((m) => ({
+    default: m.IncomeExpenseComparisonChart,
+  }))
+);
+
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -346,6 +352,7 @@ const Index = () => {
       balance,
       prevMonthIncome: stats.prevMonthIncome + prevMonthInvoiceIncome,
       prevMonthExpense: stats.prevMonthExpense + prevMonthBillExpense,
+      totalExpenseExpected,
     };
   }, [
     selectedMonth,
@@ -573,6 +580,57 @@ const Index = () => {
               <MonthlyComparisonChart
                 selectedMonth={selectedMonth}
                 getMonthlyData={getMonthlyData}
+              />
+            </Suspense>
+          </div>
+        </div>
+
+        {/* New Charts */}
+        <div className="mb-8 grid gap-4 lg:grid-cols-2">
+          <div className="rounded-xl border border-border bg-card p-6 shadow-sm animate-slide-up">
+            <div className="mb-4 flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-semibold">
+                Entradas Previstas vs. Realizadas
+              </h2>
+            </div>
+            <Suspense
+              fallback={
+                <div className="flex h-[280px] items-center justify-center text-muted-foreground text-sm">
+                  Carregando gráfico…
+                </div>
+              }
+            >
+              <IncomeExpenseComparisonChart
+                title="Entradas"
+                expectedValue={aggregatedStats.expectedIncome}
+                actualValue={aggregatedStats.actualIncome}
+                selectedMonth={selectedMonth}
+                type="income"
+              />
+            </Suspense>
+          </div>
+
+          <div className="rounded-xl border border-border bg-card p-6 shadow-sm animate-slide-up">
+            <div className="mb-4 flex items-center gap-2">
+              <TrendingDown className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-semibold">
+                Saídas Previstas vs. Realizadas
+              </h2>
+            </div>
+            <Suspense
+              fallback={
+                <div className="flex h-[280px] items-center justify-center text-muted-foreground text-sm">
+                  Carregando gráfico…
+                </div>
+              }
+            >
+              <IncomeExpenseComparisonChart
+                title="Saídas"
+                expectedValue={aggregatedStats.totalExpenseExpected}
+                actualValue={aggregatedStats.monthExpense}
+                selectedMonth={selectedMonth}
+                type="expense"
               />
             </Suspense>
           </div>

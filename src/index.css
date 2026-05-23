@@ -52,7 +52,9 @@
     --sidebar-ring: 220 70% 55%;
 
     --chart-income: 152 60% 45%;
+    --chart-income-expected: 152 60% 65%;
     --chart-expense: 0 72% 55%;
+    --chart-expense-expected: 0 72% 75%;
   }
 
   .dark {
@@ -95,6 +97,11 @@
     --sidebar-accent-foreground: 220 15% 90%;
     --sidebar-border: 220 25% 15%;
     --sidebar-ring: 220 70% 55%;
+
+    --chart-income: 152 55% 45%;
+    --chart-income-expected: 152 55% 60%;
+    --chart-expense: 0 62% 45%;
+    --chart-expense-expected: 0 62% 60%;
   }
 }
 
