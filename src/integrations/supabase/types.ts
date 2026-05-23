@@ -14,6 +14,77 @@ export type Database = {
   };
   public: {
     Tables: {
+      bill_history: {
+        Row: {
+          action: string;
+          bill_id: string;
+          created_at: string;
+          description: string | null;
+          id: string;
+          user_id: string | null;
+          user_name: string | null;
+        };
+        Insert: {
+          action: string;
+          bill_id: string;
+          created_at?: string;
+          description?: string | null;
+          id?: string;
+          user_id?: string | null;
+          user_name?: string | null;
+        };
+        Update: {
+          action?: string;
+          bill_id?: string;
+          created_at?: string;
+          description?: string | null;
+          id?: string;
+          user_id?: string | null;
+          user_name?: string | null;
+        };
+        Relationships: [];
+      };
+      bill_payments: {
+        Row: {
+          amount: number;
+          bill_id: string;
+          created_at: string;
+          id: string;
+          notes: string | null;
+          payment_date: string;
+          payment_method: string;
+          user_id: string;
+        };
+        Insert: {
+          amount: number;
+          bill_id: string;
+          created_at?: string;
+          id?: string;
+          notes?: string | null;
+          payment_date: string;
+          payment_method: string;
+          user_id: string;
+        };
+        Update: {
+          amount?: number;
+          bill_id?: string;
+          created_at?: string;
+          id?: string;
+          notes?: string | null;
+          payment_date?: string;
+          payment_method?: string;
+          user_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "bill_payments_bill_id_fkey";
+            columns: ["bill_id"];
+            isOneToOne: false;
+            referencedRelation: "bills";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
       bills: {
         Row: {
           amount: number;

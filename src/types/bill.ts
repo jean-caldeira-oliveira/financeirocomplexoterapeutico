@@ -13,7 +13,7 @@ export const billPaymentMethodLabels: Record<BillPaymentMethod, string> = {
   boleto: "Boleto",
 };
 
-export type BillStatus = "pending" | "paid" | "overdue";
+export type BillStatus = "pending" | "paid" | "overdue" | "partially_paid";
 
 export type BillRecurrence =
   | "none"
@@ -41,12 +41,49 @@ export interface Bill {
   notes?: string;
   paymentNotes?: string;
   createdAt: string;
+  // Computed from bill_payments
+  payments?: BillPayment[];
+  totalPaid?: number;
 }
+
+/** Represents a single payment entry in the bill_payments table */
+export interface BillPayment {
+  id: string;
+  billId: string;
+  userId: string;
+  amount: number;
+  paymentDate: string;
+  paymentMethod: BillPaymentMethod;
+  notes?: string;
+  createdAt: string;
+}
+
+/** Represents an audit log entry in the bill_history table */
+export interface BillHistory {
+  id: string;
+  billId: string;
+  userId?: string;
+  userName?: string;
+  action:
+    | "create"
+    | "edit"
+    | "partial_payment"
+    | "full_payment"
+    | "revert_payment"
+    | "delete"
+    | "status_change";
+  description?: string;
+  createdAt: string;
+}
+
+/** Scope options for batch editing recurring/installment bills */
+export type BillEditScope = "only_this" | "this_and_future" | "all_series";
 
 export const billStatusLabels: Record<BillStatus, string> = {
   pending: "Pendente",
   paid: "Pago",
   overdue: "Atrasado",
+  partially_paid: "Parcialmente Pago",
 };
 
 export const billRecurrenceLabels: Record<BillRecurrence, string> = {

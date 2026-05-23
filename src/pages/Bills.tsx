@@ -1,3 +1,4 @@
+import { BillDetailsModal } from "@/components/bills/BillDetailsModal";
 import { BillForm } from "@/components/bills/BillForm";
 import { EditBillDialog } from "@/components/bills/EditBillDialog";
 import { ManageCategoriesDialog } from "@/components/bills/ManageCategoriesDialog";
@@ -45,9 +46,9 @@ import {
 import { useBills } from "@/hooks/useBills";
 import { useCustomCategories } from "@/hooks/useCustomCategories";
 import {
+  Bill,
   BillRecurrence,
   BillStatus,
-  billPaymentMethodLabels,
   billRecurrenceLabels,
   billStatusLabels,
 } from "@/types/bill";
@@ -64,6 +65,7 @@ import {
   RefreshCw,
   Trash2,
   Undo2,
+  Wallet,
   X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -74,18 +76,24 @@ const Bills = () => {
     bills,
     stats,
     addBill,
-    markAsPaid,
+    addBillPayment,
+    revertPayment,
     markAsPending,
     deleteBill,
     deleteBillAndFuture,
     deleteAllRecurrences,
     updateBill,
+    fetchBillHistory,
   } = useBills();
   const { allGroupLabels, allSubcategoryLabels, allGroupSubcategories } =
     useCustomCategories();
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [categoryFilters, setCategoryFilters] = useState<string[]>([]);
   const [subcategoryFilters, setSubcategoryFilters] = useState<string[]>([]);
+
+  // BillDetailsModal state
+  const [detailsBill, setDetailsBill] = useState<Bill | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const currentDate = new Date();
   const [selectedMonth, setSelectedMonth] = useState(
@@ -170,6 +178,13 @@ const Bills = () => {
             {billStatusLabels[status]}
           </Badge>
         );
+      case "partially_paid":
+        return (
+          <Badge className="gap-1 bg-amber-500 hover:bg-amber-600 text-white">
+            <Wallet className="h-3 w-3" />
+            {billStatusLabels[status]}
+          </Badge>
+        );
       case "pending":
         return (
           <Badge className="gap-1 bg-yellow-500 hover:bg-yellow-600 text-white">
@@ -189,17 +204,32 @@ const Bills = () => {
 
   const filteredTotals = useMemo(() => {
     const paid = filteredBills.filter((b) => b.status === "paid");
+    const partiallyPaid = filteredBills.filter(
+      (b) => b.status === "partially_paid"
+    );
     const pending = filteredBills.filter((b) => b.status === "pending");
     const overdue = filteredBills.filter((b) => b.status === "overdue");
     const total = filteredBills.reduce((sum, b) => sum + b.amount, 0);
 
     return {
-      paid: paid.reduce((sum, b) => sum + (b.paidAmount ?? b.amount), 0),
+      paid: paid.reduce(
+        (sum, b) => sum + (b.totalPaid ?? b.paidAmount ?? b.amount),
+        0
+      ),
+      partiallyPaid: partiallyPaid.reduce(
+        (sum, b) => sum + (b.totalPaid ?? 0),
+        0
+      ),
       pending: pending.reduce((sum, b) => sum + b.amount, 0),
       overdue: overdue.reduce((sum, b) => sum + b.amount, 0),
       total,
     };
   }, [filteredBills]);
+
+  const openDetails = (bill: Bill) => {
+    setDetailsBill(bill);
+    setDetailsOpen(true);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -233,7 +263,7 @@ const Bills = () => {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         {/* Summary Cards */}
-        <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-4">
+        <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="rounded-xl border border-border bg-card p-4">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <FileText className="h-4 w-4 text-primary" />
@@ -305,6 +335,7 @@ const Bills = () => {
               <PopoverContent className="w-[200px] p-2" align="start">
                 {[
                   { value: "paid", label: "Pagos" },
+                  { value: "partially_paid", label: "Parcialmente Pagos" },
                   { value: "pending", label: "Pendentes" },
                   { value: "overdue", label: "Atrasados" },
                 ].map((opt) => (
@@ -452,8 +483,7 @@ const Bills = () => {
                     <TableHead>Categoria</TableHead>
                     <TableHead>Recorrência</TableHead>
                     <TableHead>Vencimento</TableHead>
-                    <TableHead>Pagamento</TableHead>
-                    <TableHead>Forma</TableHead>
+                    <TableHead>Pago</TableHead>
                     <TableHead>Valor</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Ações</TableHead>
@@ -461,7 +491,11 @@ const Bills = () => {
                 </TableHeader>
                 <TableBody>
                   {filteredBills.map((bill) => (
-                    <TableRow key={bill.id}>
+                    <TableRow
+                      key={bill.id}
+                      className="cursor-pointer hover:bg-muted/30"
+                      onClick={() => openDetails(bill)}
+                    >
                       <TableCell className="font-medium">
                         <div>
                           {bill.description}
@@ -497,44 +531,36 @@ const Bills = () => {
                         {format(new Date(bill.dueDate), "dd/MM/yyyy")}
                       </TableCell>
                       <TableCell>
-                        {bill.paymentDate ? (
-                          <span className="text-sm text-green-600">
-                            {format(new Date(bill.paymentDate), "dd/MM/yyyy")}
-                          </span>
+                        {(bill.totalPaid ?? 0) > 0 ? (
+                          <div>
+                            <span className="text-sm font-medium text-green-600">
+                              {formatCurrency(bill.totalPaid ?? 0)}
+                            </span>
+                            {bill.status === "partially_paid" && (
+                              <div className="text-xs text-amber-500">
+                                de {formatCurrency(bill.amount)}
+                              </div>
+                            )}
+                          </div>
                         ) : (
                           <span className="text-sm text-muted-foreground">
                             -
                           </span>
                         )}
                       </TableCell>
-                      <TableCell>
-                        {bill.paymentMethod ? (
-                          <Badge variant="outline" className="text-xs">
-                            {billPaymentMethodLabels[bill.paymentMethod]}
-                          </Badge>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">
-                            -
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {formatCurrency(
-                          bill.status === "paid"
-                            ? bill.paidAmount ?? bill.amount
-                            : bill.amount
-                        )}
-                        {bill.paidAmount != null &&
-                          bill.paidAmount !== bill.amount && (
-                            <div className="text-xs text-muted-foreground">
-                              Original: {formatCurrency(bill.amount)}
-                            </div>
-                          )}
-                      </TableCell>
+                      <TableCell>{formatCurrency(bill.amount)}</TableCell>
                       <TableCell>{getStatusBadge(bill.status)}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell
+                        className="text-right"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <div className="flex items-center justify-end gap-2">
-                          <EditBillDialog bill={bill} onSave={updateBill} />
+                          <EditBillDialog
+                            bill={bill}
+                            onSave={(id, data, scope) =>
+                              updateBill(id, data, scope)
+                            }
+                          />
 
                           {bill.status === "paid" ? (
                             <Tooltip>
@@ -555,29 +581,25 @@ const Bills = () => {
                             </Tooltip>
                           ) : (
                             <PayBillDialog
-                              onConfirm={(
-                                date,
-                                paidAmount,
-                                method,
-                                paymentNotes
-                              ) =>
-                                markAsPaid(
-                                  bill.id,
-                                  date,
-                                  paidAmount,
-                                  method,
-                                  paymentNotes
-                                )
+                              onConfirm={(lines) =>
+                                addBillPayment(bill.id, lines)
                               }
                               billAmount={bill.amount}
                               billDueDate={bill.dueDate}
+                              alreadyPaid={bill.totalPaid ?? 0}
                               trigger={
                                 <Button
                                   size="sm"
-                                  className="gap-2 bg-green-500 hover:bg-green-600"
+                                  className={`gap-2 ${
+                                    bill.status === "partially_paid"
+                                      ? "bg-amber-500 hover:bg-amber-600"
+                                      : "bg-green-500 hover:bg-green-600"
+                                  }`}
                                 >
                                   <Check className="h-4 w-4" />
-                                  Pagar
+                                  {bill.status === "partially_paid"
+                                    ? "Completar"
+                                    : "Pagar"}
                                 </Button>
                               }
                             />
@@ -654,6 +676,31 @@ const Bills = () => {
           )}
         </div>
       </main>
+
+      {/* Bill Details Modal */}
+      <BillDetailsModal
+        bill={detailsBill}
+        open={detailsOpen}
+        onClose={() => setDetailsOpen(false)}
+        onRevertPayment={(paymentId, billId) => {
+          revertPayment(paymentId, billId);
+          // Update the detailsBill reference after revert
+          setDetailsBill((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  payments: (prev.payments ?? []).filter(
+                    (p) => p.id !== paymentId
+                  ),
+                  totalPaid: (prev.payments ?? [])
+                    .filter((p) => p.id !== paymentId)
+                    .reduce((s, p) => s + p.amount, 0),
+                }
+              : null
+          );
+        }}
+        fetchHistory={fetchBillHistory}
+      />
     </div>
   );
 };

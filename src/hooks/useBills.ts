@@ -2,6 +2,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Bill,
+  BillEditScope,
+  BillHistory,
+  BillPayment,
   BillPaymentMethod,
   BillRecurrence,
   BillStatus,
@@ -28,83 +31,152 @@ export interface AddBillData {
   notes?: string;
 }
 
-const mapRow = (row: any): Bill => ({
+export interface NewPaymentLine {
+  amount: string;
+  paymentMethod: BillPaymentMethod;
+  paymentDate: string;
+  notes: string;
+}
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+const mapPaymentRow = (row: any): BillPayment => ({
   id: row.id,
-  description: row.description,
+  billId: row.bill_id,
+  userId: row.user_id,
   amount: Number(row.amount),
-  dueDate: row.due_date,
-  category: row.category,
-  subcategory: row.subcategory,
-  status: row.status as BillStatus,
-  recurrence: row.recurrence as BillRecurrence,
-  recurrenceGroupId: row.recurrence_group_id ?? undefined,
-  installmentNumber: row.installment_number ?? undefined,
-  totalInstallments: row.total_installments ?? undefined,
-  paidAt: row.paid_at ?? undefined,
-  paymentDate: row.payment_date ?? undefined,
-  paidAmount: row.paid_amount != null ? Number(row.paid_amount) : undefined,
-  paymentMethod: row.payment_method as BillPaymentMethod | undefined,
+  paymentDate: row.payment_date,
+  paymentMethod: row.payment_method as BillPaymentMethod,
   notes: row.notes ?? undefined,
-  paymentNotes: row.payment_notes ?? undefined,
   createdAt: row.created_at,
 });
+
+/**
+ * Compute the derived status of a bill based on its payments and due date.
+ * This is the single source of truth for status calculation.
+ */
+const computeStatus = (
+  billAmount: number,
+  dueDate: string,
+  payments: BillPayment[],
+  currentStatus: BillStatus
+): BillStatus => {
+  // Never downgrade a manually-set paid status if payments table is empty
+  // (legacy bills paid before this migration)
+  const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+
+  if (totalPaid >= billAmount) return "paid";
+  if (totalPaid > 0) return "partially_paid";
+
+  // No payments recorded — check due date
+  const today = startOfDay(new Date());
+  const due = startOfDay(new Date(dueDate));
+  if (isBefore(due, today)) return "overdue";
+  return "pending";
+};
+
+const mapRow = (row: any, payments: BillPayment[] = []): Bill => {
+  const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+  const rawStatus = row.status as BillStatus;
+
+  // If no payments in new table, respect legacy status (paid bills migrated)
+  const status =
+    payments.length > 0
+      ? computeStatus(Number(row.amount), row.due_date, payments, rawStatus)
+      : rawStatus;
+
+  return {
+    id: row.id,
+    description: row.description,
+    amount: Number(row.amount),
+    dueDate: row.due_date,
+    category: row.category,
+    subcategory: row.subcategory,
+    status,
+    recurrence: row.recurrence as BillRecurrence,
+    recurrenceGroupId: row.recurrence_group_id ?? undefined,
+    installmentNumber: row.installment_number ?? undefined,
+    totalInstallments: row.total_installments ?? undefined,
+    paidAt: row.paid_at ?? undefined,
+    paymentDate: row.payment_date ?? undefined,
+    paidAmount: row.paid_amount != null ? Number(row.paid_amount) : undefined,
+    paymentMethod: row.payment_method as BillPaymentMethod | undefined,
+    notes: row.notes ?? undefined,
+    paymentNotes: row.payment_notes ?? undefined,
+    createdAt: row.created_at,
+    payments,
+    totalPaid,
+  };
+};
+
+// ─── Audit log helper ────────────────────────────────────────────────────────
+async function insertHistory(
+  billId: string,
+  userId: string,
+  userName: string,
+  action: BillHistory["action"],
+  description: string
+) {
+  await supabase.from("bill_history").insert({
+    bill_id: billId,
+    user_id: userId,
+    user_name: userName,
+    action,
+    description,
+  });
+}
 
 export function useBills() {
   const [bills, setBills] = useState<Bill[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
 
+  // ─── fetchBills: load bills + their payments, compute status ───────────────
   const fetchBills = useCallback(async () => {
     if (!user) {
       setBills([]);
       setIsLoading(false);
       return;
     }
-    const { data, error } = await supabase
-      .from("bills")
-      .select("*")
-      .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("Error fetching bills:", error);
+    // Fetch bills and all their payments in parallel
+    const [billsRes, paymentsRes] = await Promise.all([
+      supabase
+        .from("bills")
+        .select("*")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("bill_payments")
+        .select("*")
+        .order("payment_date", { ascending: true }),
+    ]);
+
+    if (billsRes.error) {
+      console.error("Error fetching bills:", billsRes.error);
       toast.error("Erro ao carregar contas");
-    } else {
-      setBills((data || []).map(mapRow));
+      setIsLoading(false);
+      return;
     }
+
+    // Group payments by bill_id
+    const paymentsByBill: Record<string, BillPayment[]> = {};
+    for (const p of paymentsRes.data || []) {
+      const mapped = mapPaymentRow(p);
+      if (!paymentsByBill[mapped.billId]) paymentsByBill[mapped.billId] = [];
+      paymentsByBill[mapped.billId].push(mapped);
+    }
+
+    setBills(
+      (billsRes.data || []).map((row) =>
+        mapRow(row, paymentsByBill[row.id] ?? [])
+      )
+    );
     setIsLoading(false);
   }, [user]);
 
   useEffect(() => {
     fetchBills();
   }, [fetchBills]);
-
-  // Auto-update overdue status
-  useEffect(() => {
-    if (bills.length === 0) return;
-    const today = startOfDay(new Date());
-    const updates: { id: string; status: BillStatus }[] = [];
-
-    const updated = bills.map((bill) => {
-      if (bill.status === "paid") return bill;
-      const dueDate = startOfDay(new Date(bill.dueDate));
-      const newStatus: BillStatus = isBefore(dueDate, today)
-        ? "overdue"
-        : "pending";
-      if (bill.status !== newStatus) {
-        updates.push({ id: bill.id, status: newStatus });
-        return { ...bill, status: newStatus };
-      }
-      return bill;
-    });
-
-    if (updates.length > 0) {
-      setBills(updated);
-      // Update in DB in background
-      updates.forEach(({ id, status }) => {
-        supabase.from("bills").update({ status }).eq("id", id).then();
-      });
-    }
-  }, [bills.length]); // Only run when bills count changes (initial load)
 
   const getNextDueDate = (
     currentDueDate: Date,
@@ -220,69 +292,184 @@ export function useBills() {
         return [];
       }
 
-      const newBills = (inserted || []).map(mapRow);
+      const newBills = (inserted || []).map((row: any) => mapRow(row, []));
       setBills((prev) => [...newBills, ...prev]);
+
+      // Audit log for each created bill
+      for (const b of newBills) {
+        await insertHistory(
+          b.id,
+          user!.id,
+          user!.email ?? "Usuário",
+          "create",
+          `Conta criada: "${b.description}" — vencimento ${new Date(
+            b.dueDate
+          ).toLocaleDateString("pt-BR")}`
+        );
+      }
+
+      toast.success(
+        newBills.length > 1
+          ? `${newBills.length} contas criadas`
+          : "Conta criada"
+      );
       return newBills;
     },
     [user]
   );
 
-  const markAsPaid = useCallback(
+  // ─── addBillPayment: multi-line partial/full payment ──────────────────────
+  const addBillPayment = useCallback(
     async (
-      id: string,
-      paymentDate?: Date,
-      paidAmount?: number,
-      paymentMethod?: BillPaymentMethod,
-      paymentNotes?: string
+      billId: string,
+      lines: {
+        amount: number;
+        paymentMethod: BillPaymentMethod;
+        paymentDate: Date;
+        notes?: string;
+      }[]
     ) => {
-      const bill = bills.find((b) => b.id === id);
-      if (!bill) return;
+      const bill = bills.find((b) => b.id === billId);
+      if (!bill || !user) return;
 
-      const updates: any = {
-        status: "paid",
-        paid_at: new Date().toISOString(),
-        payment_date: paymentDate
-          ? paymentDate.toISOString()
-          : new Date().toISOString(),
-        paid_amount: paidAmount ?? bill.amount,
-        payment_method: paymentMethod ?? null,
-        payment_notes: paymentNotes ?? null,
-      };
+      const rows = lines.map((l) => ({
+        bill_id: billId,
+        user_id: user.id,
+        amount: l.amount,
+        payment_date: l.paymentDate.toISOString(),
+        payment_method: l.paymentMethod,
+        notes: l.notes ?? null,
+      }));
 
-      const { error } = await supabase
-        .from("bills")
-        .update(updates)
-        .eq("id", id);
+      const { data: inserted, error } = await supabase
+        .from("bill_payments")
+        .insert(rows)
+        .select();
+
       if (error) {
-        console.error("Error marking bill as paid:", error);
-        toast.error("Erro ao marcar conta como paga");
+        console.error("Error adding bill payments:", error);
+        toast.error("Erro ao registrar pagamento");
         return;
       }
 
+      const newPayments = (inserted || []).map(mapPaymentRow);
+      const allPayments = [...(bill.payments ?? []), ...newPayments];
+      const totalPaid = allPayments.reduce((sum, p) => sum + p.amount, 0);
+      const newStatus = computeStatus(
+        bill.amount,
+        bill.dueDate,
+        allPayments,
+        bill.status
+      );
+
+      // Update bill status in DB
+      await supabase
+        .from("bills")
+        .update({ status: newStatus })
+        .eq("id", billId);
+
+      // Update local state
       setBills((prev) =>
         prev.map((b) =>
-          b.id === id
-            ? {
-                ...b,
-                status: "paid" as BillStatus,
-                paidAt: updates.paid_at,
-                paymentDate: updates.payment_date,
-                paidAmount: updates.paid_amount,
-                paymentMethod: paymentMethod,
-                paymentNotes: paymentNotes,
-              }
-            : b
+          b.id !== billId
+            ? b
+            : { ...b, payments: allPayments, totalPaid, status: newStatus }
         )
       );
+
+      // Audit log
+      const totalAmount = lines.reduce((s, l) => s + l.amount, 0);
+      const action: BillHistory["action"] =
+        newStatus === "paid" ? "full_payment" : "partial_payment";
+      const methodLabel =
+        lines.length === 1
+          ? lines[0].paymentMethod.toUpperCase()
+          : "múltiplas formas";
+      await insertHistory(
+        billId,
+        user.id,
+        user.email ?? "Usuário",
+        action,
+        `Pagamento de R$${totalAmount.toFixed(
+          2
+        )} via ${methodLabel} — status: ${newStatus}`
+      );
+
+      toast.success(
+        newStatus === "paid" ? "Conta quitada!" : "Pagamento parcial registrado"
+      );
     },
-    [bills]
+    [bills, user]
   );
 
+  // ─── revertPayment: delete a specific payment and recompute status ─────────
+  const revertPayment = useCallback(
+    async (paymentId: string, billId: string) => {
+      const bill = bills.find((b) => b.id === billId);
+      if (!bill || !user) return;
+
+      const { error } = await supabase
+        .from("bill_payments")
+        .delete()
+        .eq("id", paymentId);
+
+      if (error) {
+        console.error("Error reverting payment:", error);
+        toast.error("Erro ao estornar pagamento");
+        return;
+      }
+
+      const remainingPayments = (bill.payments ?? []).filter(
+        (p) => p.id !== paymentId
+      );
+      const totalPaid = remainingPayments.reduce((sum, p) => sum + p.amount, 0);
+      const newStatus = computeStatus(
+        bill.amount,
+        bill.dueDate,
+        remainingPayments,
+        bill.status
+      );
+
+      await supabase
+        .from("bills")
+        .update({ status: newStatus })
+        .eq("id", billId);
+
+      setBills((prev) =>
+        prev.map((b) =>
+          b.id !== billId
+            ? b
+            : {
+                ...b,
+                payments: remainingPayments,
+                totalPaid,
+                status: newStatus,
+              }
+        )
+      );
+
+      await insertHistory(
+        billId,
+        user.id,
+        user.email ?? "Usuário",
+        "revert_payment",
+        `Pagamento estornado — novo status: ${newStatus}`
+      );
+
+      toast.success("Pagamento estornado");
+    },
+    [bills, user]
+  );
+
+  // ─── markAsPending: legacy revert (clears all payments) ───────────────────
   const markAsPending = useCallback(
     async (id: string) => {
       const today = startOfDay(new Date());
       const bill = bills.find((b) => b.id === id);
-      if (!bill) return;
+      if (!bill || !user) return;
+
+      // Delete all payments for this bill
+      await supabase.from("bill_payments").delete().eq("bill_id", id);
 
       const dueDate = startOfDay(new Date(bill.dueDate));
       const newStatus: BillStatus = isBefore(dueDate, today)
@@ -317,23 +504,49 @@ export function useBills() {
                 paymentDate: undefined,
                 paidAmount: undefined,
                 paymentMethod: undefined,
+                payments: [],
+                totalPaid: 0,
               }
         )
       );
+
+      await insertHistory(
+        id,
+        user.id,
+        user.email ?? "Usuário",
+        "revert_payment",
+        `Todos os pagamentos removidos — status revertido para ${newStatus}`
+      );
+
+      toast.success("Pagamento desfeito");
     },
-    [bills]
+    [bills, user]
   );
 
-  const deleteBill = useCallback(async (id: string) => {
-    const { error } = await supabase.from("bills").delete().eq("id", id);
-    if (error) {
-      console.error("Error deleting bill:", error);
-      toast.error("Erro ao excluir conta");
-      return;
-    }
-    setBills((prev) => prev.filter((b) => b.id !== id));
-    toast.success("Conta excluída");
-  }, []);
+  const deleteBill = useCallback(
+    async (id: string) => {
+      const bill = bills.find((b) => b.id === id);
+      const { error } = await supabase.from("bills").delete().eq("id", id);
+      if (error) {
+        console.error("Error deleting bill:", error);
+        toast.error("Erro ao excluir conta");
+        return;
+      }
+      setBills((prev) => prev.filter((b) => b.id !== id));
+
+      if (bill && user) {
+        await insertHistory(
+          id,
+          user.id,
+          user.email ?? "Usuário",
+          "delete",
+          `Conta excluída: "${bill.description}"`
+        );
+      }
+      toast.success("Conta excluída");
+    },
+    [bills, user]
+  );
 
   const deleteBillAndFuture = useCallback(
     async (id: string) => {
@@ -408,78 +621,124 @@ export function useBills() {
   );
 
   const updateBill = useCallback(
-    async (id: string, data: Partial<AddBillData>) => {
+    async (
+      id: string,
+      data: Partial<AddBillData>,
+      scope: BillEditScope = "only_this"
+    ) => {
       const today = startOfDay(new Date());
       const bill = bills.find((b) => b.id === id);
-      if (!bill) return;
+      if (!bill || !user) return;
 
-      const updates: any = {};
-      if (data.description !== undefined)
-        updates.description = data.description;
-      if (data.amount !== undefined) updates.amount = data.amount;
-      if (data.category !== undefined) updates.category = data.category;
-      if (data.subcategory !== undefined)
-        updates.subcategory = data.subcategory;
-      if (data.recurrence !== undefined) updates.recurrence = data.recurrence;
-      if (data.notes !== undefined) updates.notes = data.notes;
-      if (data.dueDate !== undefined) {
-        updates.due_date = data.dueDate.toISOString();
-        if (bill.status !== "paid") {
-          updates.status = isBefore(startOfDay(data.dueDate), today)
-            ? "overdue"
-            : "pending";
+      const buildUpdates = (b: Bill) => {
+        const updates: any = {};
+        if (data.description !== undefined)
+          updates.description = data.description;
+        if (data.amount !== undefined) updates.amount = data.amount;
+        if (data.category !== undefined) updates.category = data.category;
+        if (data.subcategory !== undefined)
+          updates.subcategory = data.subcategory;
+        if (data.recurrence !== undefined) updates.recurrence = data.recurrence;
+        if (data.notes !== undefined) updates.notes = data.notes;
+        if (data.dueDate !== undefined) {
+          updates.due_date = data.dueDate.toISOString();
+          if (b.status !== "paid" && b.status !== "partially_paid") {
+            updates.status = isBefore(startOfDay(data.dueDate), today)
+              ? "overdue"
+              : "pending";
+          }
         }
+        return updates;
+      };
+
+      let query = supabase.from("bills").update(buildUpdates(bill));
+
+      if (scope === "only_this" || !bill.recurrenceGroupId) {
+        query = query.eq("id", id);
+      } else if (scope === "this_and_future") {
+        query = query
+          .eq("recurrence_group_id", bill.recurrenceGroupId)
+          .gte("due_date", startOfDay(new Date(bill.dueDate)).toISOString());
+      } else {
+        // all_series
+        query = query.eq("recurrence_group_id", bill.recurrenceGroupId);
       }
 
-      const { error } = await supabase
-        .from("bills")
-        .update(updates)
-        .eq("id", id);
+      const { error } = await query;
       if (error) {
         console.error("Error updating bill:", error);
         toast.error("Erro ao atualizar conta");
         return;
       }
 
+      // Update local state
       setBills((prev) =>
         prev.map((b) => {
-          if (b.id !== id) return b;
-          const updatedBill = { ...b };
-          if (data.description !== undefined)
-            updatedBill.description = data.description;
-          if (data.amount !== undefined) updatedBill.amount = data.amount;
-          if (data.category !== undefined) updatedBill.category = data.category;
-          if (data.subcategory !== undefined)
-            updatedBill.subcategory = data.subcategory;
-          if (data.recurrence !== undefined)
-            updatedBill.recurrence = data.recurrence;
-          if (data.notes !== undefined) updatedBill.notes = data.notes;
-          if (data.dueDate !== undefined) {
-            updatedBill.dueDate = data.dueDate.toISOString();
-            if (b.status !== "paid") {
-              updatedBill.status = isBefore(startOfDay(data.dueDate), today)
-                ? "overdue"
-                : "pending";
-            }
-          }
-          return updatedBill;
+          const shouldUpdate =
+            scope === "only_this"
+              ? b.id === id
+              : scope === "this_and_future"
+              ? b.recurrenceGroupId === bill.recurrenceGroupId &&
+                !isBefore(
+                  startOfDay(new Date(b.dueDate)),
+                  startOfDay(new Date(bill.dueDate))
+                )
+              : b.recurrenceGroupId === bill.recurrenceGroupId;
+
+          if (!shouldUpdate) return b;
+
+          const updates = buildUpdates(b);
+          return {
+            ...b,
+            description: updates.description ?? b.description,
+            amount: updates.amount ?? b.amount,
+            category: updates.category ?? b.category,
+            subcategory: updates.subcategory ?? b.subcategory,
+            recurrence: updates.recurrence ?? b.recurrence,
+            notes: updates.notes ?? b.notes,
+            dueDate: updates.due_date ?? b.dueDate,
+            status: updates.status ?? b.status,
+          };
         })
       );
+
+      const scopeLabel =
+        scope === "only_this"
+          ? "apenas esta ocorrência"
+          : scope === "this_and_future"
+          ? "esta e futuras ocorrências"
+          : "toda a série";
+
+      await insertHistory(
+        id,
+        user.id,
+        user.email ?? "Usuário",
+        "edit",
+        `Conta editada (${scopeLabel}): "${bill.description}"`
+      );
+
+      toast.success("Conta atualizada");
     },
-    [bills]
+    [bills, user]
   );
 
   const stats = useMemo(() => {
     const pending = bills.filter((b) => b.status === "pending");
     const overdue = bills.filter((b) => b.status === "overdue");
+    const partiallyPaid = bills.filter((b) => b.status === "partially_paid");
     const paid = bills.filter((b) => b.status === "paid");
     return {
       pendingCount: pending.length,
       pendingTotal: pending.reduce((sum, b) => sum + b.amount, 0),
       overdueCount: overdue.length,
       overdueTotal: overdue.reduce((sum, b) => sum + b.amount, 0),
+      partiallyPaidCount: partiallyPaid.length,
+      partiallyPaidTotal: partiallyPaid.reduce((sum, b) => sum + b.amount, 0),
       paidCount: paid.length,
-      paidTotal: paid.reduce((sum, b) => sum + (b.paidAmount ?? b.amount), 0),
+      paidTotal: paid.reduce(
+        (sum, b) => sum + (b.totalPaid ?? b.paidAmount ?? b.amount),
+        0
+      ),
     };
   }, [bills]);
 
@@ -504,6 +763,35 @@ export function useBills() {
         (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
       );
   }, [bills]);
+
+  // ─── fetchBillHistory: load audit log for a specific bill ─────────────────
+  const fetchBillHistory = useCallback(
+    async (billId: string): Promise<BillHistory[]> => {
+      const { data, error } = await supabase
+        .from("bill_history")
+        .select("*")
+        .eq("bill_id", billId)
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.error("Error fetching bill history:", error);
+        return [];
+      }
+
+      return (data || []).map(
+        (row: any): BillHistory => ({
+          id: row.id,
+          billId: row.bill_id,
+          userId: row.user_id ?? undefined,
+          userName: row.user_name ?? undefined,
+          action: row.action as BillHistory["action"],
+          description: row.description ?? undefined,
+          createdAt: row.created_at,
+        })
+      );
+    },
+    []
+  );
 
   const getBillsByMonth = useCallback(
     (year: number, month: number) => {
@@ -554,12 +842,14 @@ export function useBills() {
     upcomingBills,
     overdueBills,
     addBill,
-    markAsPaid,
+    addBillPayment,
+    revertPayment,
     markAsPending,
     deleteBill,
     deleteBillAndFuture,
     deleteAllRecurrences,
     updateBill,
+    fetchBillHistory,
     getBillsByMonth,
     getBillsActualExpenseByDateRange,
     getBillsExpectedExpenseByDateRange,
