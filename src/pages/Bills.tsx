@@ -621,8 +621,8 @@ const Bills = () => {
                                   Excluir conta?
                                 </AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  {bill.recurrence !== "none"
-                                    ? `"${bill.description}" faz parte de uma série recorrente. Escolha como deseja excluir:`
+                                  {bill.recurrenceGroupId
+                                    ? `"${bill.description}" faz parte de uma série. Escolha como deseja excluir:`
                                     : `Esta ação não pode ser desfeita. A conta "${bill.description}" será removida permanentemente.`}
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
@@ -630,7 +630,7 @@ const Bills = () => {
                                 <AlertDialogCancel className="mt-0">
                                   Cancelar
                                 </AlertDialogCancel>
-                                {bill.recurrence !== "none" ? (
+                                {bill.recurrenceGroupId ? (
                                   <>
                                     <AlertDialogAction
                                       onClick={() => deleteBill(bill.id)}
