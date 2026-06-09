@@ -33,6 +33,7 @@ import {
   ArrowLeft,
   Building2,
   Filter,
+  RefreshCw,
   Search,
   Settings2,
   UserPlus,
@@ -60,6 +61,7 @@ const Patients = () => {
     deleteSource,
   } = useReferralSources();
   const {
+    invoices,
     generateInvoicesForPatient,
     deletePatientInvoices,
     deleteFuturePatientInvoices,
@@ -79,6 +81,24 @@ const Patients = () => {
   const [wardFilter, setWardFilter] = useState<WardFilter>("all");
   const [referralFilter, setReferralFilter] = useState<ReferralFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isResyncing, setIsResyncing] = useState(false);
+
+  const handleResync = async () => {
+    const inactiveIds = new Set(patients.filter((p) => !p.active).map((p) => p.id));
+    const patientIdsToClean = [
+      ...new Set(
+        invoices
+          .filter((inv) => inactiveIds.has(inv.patientId) && inv.status !== "paid")
+          .map((inv) => inv.patientId)
+      ),
+    ];
+    if (patientIdsToClean.length === 0) return;
+    setIsResyncing(true);
+    for (const patientId of patientIdsToClean) {
+      await deletePatientInvoices(patientId);
+    }
+    setIsResyncing(false);
+  };
 
   const filteredPatients = useMemo(() => {
     return patients.filter((patient) => {
@@ -214,6 +234,10 @@ const Patients = () => {
           </div>
 
           <div className="flex items-center gap-2">
+            <Button variant="outline" className="gap-2" onClick={handleResync} disabled={isResyncing}>
+              <RefreshCw className={`h-4 w-4 ${isResyncing ? "animate-spin" : ""}`} />
+              Ressincronizar
+            </Button>
             <Button className="gap-2" onClick={() => setFormOpen(true)}>
               <UserPlus className="h-5 w-5" />
               Novo Paciente
