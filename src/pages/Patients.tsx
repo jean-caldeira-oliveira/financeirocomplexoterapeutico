@@ -62,7 +62,7 @@ const Patients = () => {
   const {
     generateInvoicesForPatient,
     deleteFuturePatientInvoices,
-    updatePendingInvoiceAmounts,
+    regeneratePatientInvoices,
   } = useInvoices();
   const [formOpen, setFormOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
@@ -136,10 +136,14 @@ const Patients = () => {
   const handleEditPatient = (data: PatientFormData) => {
     if (!editingPatient) return;
 
-    const feeChanged = data.monthlyFee !== editingPatient.monthlyFee;
+    const invoiceParamsChanged =
+      data.monthlyFee !== editingPatient.monthlyFee ||
+      data.dueDay !== editingPatient.dueDay ||
+      data.installments !== editingPatient.installments ||
+      String(data.firstInstallmentDate) !== String(editingPatient.firstInstallmentDate) ||
+      data.interestRateMonthly !== editingPatient.interestRateMonthly;
 
-    if (feeChanged) {
-      // Show confirmation dialog before updating invoices
+    if (invoiceParamsChanged) {
       setFeeChangeConfirm({
         patientId: editingPatient.id,
         data,
@@ -151,14 +155,23 @@ const Patients = () => {
     }
   };
 
-  const handleConfirmFeeChange = (updateInvoices: boolean) => {
+  const handleConfirmFeeChange = async (regenerate: boolean) => {
     if (!feeChangeConfirm) return;
     const { patientId, data } = feeChangeConfirm;
 
-    updatePatient(patientId, data);
+    await updatePatient(patientId, data);
 
-    if (updateInvoices) {
-      updatePendingInvoiceAmounts(patientId, data.monthlyFee);
+    if (regenerate) {
+      await regeneratePatientInvoices({
+        patientId,
+        patientName: data.name,
+        monthlyFee: data.monthlyFee,
+        dueDay: data.dueDay,
+        installments: data.installments,
+        startDate: data.entryDate,
+        firstInstallmentDate: data.firstInstallmentDate,
+        interestRateMonthly: data.interestRateMonthly,
+      });
     }
 
     setFeeChangeConfirm(null);
@@ -437,43 +450,27 @@ const Patients = () => {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Mensalidade alterada</AlertDialogTitle>
-            <AlertDialogDescription>
-              O valor da mensalidade foi alterado de{" "}
-              <strong>
-                {feeChangeConfirm &&
-                  new Intl.NumberFormat("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                  }).format(feeChangeConfirm.oldFee)}
-              </strong>{" "}
-              para{" "}
-              <strong>
-                {feeChangeConfirm &&
-                  new Intl.NumberFormat("pt-BR", {
-                    style: "currency",
-                    currency: "BRL",
-                  }).format(feeChangeConfirm.data.monthlyFee)}
-              </strong>
-              .
-              <br />
-              <br />
-              Deseja atualizar as parcelas <strong>
-                pendentes futuras
-              </strong>{" "}
-              com o novo valor?
-              <br />
-              <span className="text-xs text-muted-foreground">
-                Parcelas já pagas e atrasadas não serão alteradas.
-              </span>
+            <AlertDialogTitle>Dados de cobrança alterados</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                <p>
+                  Você alterou dados que afetam as cobranças (valor, dia de vencimento, número de parcelas ou data da primeira parcela).
+                </p>
+                <p>
+                  Deseja <strong>recriar as cobranças pendentes</strong> com os novos dados?
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Cobranças já pagas não serão afetadas.
+                </p>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => handleConfirmFeeChange(false)}>
-              Não, manter valores
+              Não, manter cobranças
             </AlertDialogCancel>
             <AlertDialogAction onClick={() => handleConfirmFeeChange(true)}>
-              Sim, atualizar parcelas
+              Sim, recriar cobranças
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

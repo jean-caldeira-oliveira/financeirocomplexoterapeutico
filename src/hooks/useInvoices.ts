@@ -472,6 +472,93 @@ export function useInvoices() {
     return ids.length;
   }, [invoices]);
 
+  // Delete all unpaid future invoices for a patient and regenerate based on new params.
+  // Paid invoices are preserved. New installments start from the first future due date.
+  const regeneratePatientInvoices = useCallback(
+    async (data: GenerateInvoicesData): Promise<void> => {
+      if (!user) return;
+      const today = startOfDay(new Date());
+
+      // Count paid monthly invoices to determine how many have been paid already
+      const patientInvoices = invoices.filter(
+        (inv) => inv.patientId === data.patientId
+      );
+      const paidMonthlyCount = patientInvoices.filter(
+        (inv) => inv.type === "monthly" && inv.status === "paid"
+      ).length;
+
+      // Delete unpaid (pending + overdue) future and current invoices
+      const toDelete = patientInvoices.filter((inv) => {
+        if (inv.status === "paid") return false;
+        return true; // delete all unpaid regardless of date
+      });
+
+      if (toDelete.length > 0) {
+        const ids = toDelete.map((inv) => inv.id);
+        const { error } = await supabase.from("invoices").delete().in("id", ids);
+        if (error) {
+          console.error("Error deleting invoices for regeneration:", error);
+          toast.error("Erro ao remover cobranças antigas");
+          return;
+        }
+        setInvoices((prev) => prev.filter((inv) => !ids.includes(inv.id)));
+      }
+
+      // Remaining installments = total - already paid
+      const remainingInstallments = Math.max(
+        0,
+        data.installments - paidMonthlyCount
+      );
+      if (remainingInstallments === 0) return;
+
+      // Generate new invoices starting from the first future month
+      // Find the next due date from today based on dueDay
+      const baseDate = data.firstInstallmentDate ?? data.startDate;
+      const rows: any[] = [];
+
+      // Find the starting month offset: skip months that are already paid
+      for (let i = 0; i < remainingInstallments; i++) {
+        const monthOffset = paidMonthlyCount + i;
+        const baseMonthDate = addMonths(baseDate, monthOffset);
+        const year = baseMonthDate.getFullYear();
+        const month = baseMonthDate.getMonth();
+        const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+        const actualDueDay = Math.min(data.dueDay, lastDayOfMonth);
+        const dueDate = new Date(year, month, actualDueDay);
+
+        rows.push({
+          user_id: user.id,
+          patient_id: data.patientId,
+          patient_name: data.patientName,
+          amount: data.monthlyFee,
+          due_date: dueDate.toISOString(),
+          installment_number: paidMonthlyCount + i + 1,
+          total_installments: data.installments,
+          status: isBefore(startOfDay(dueDate), today) ? "overdue" : "pending",
+          type: "monthly",
+          interest_rate_monthly: data.interestRateMonthly,
+        });
+      }
+
+      if (rows.length === 0) return;
+
+      const { data: inserted, error } = await supabase
+        .from("invoices")
+        .insert(rows)
+        .select();
+
+      if (error) {
+        console.error("Error regenerating invoices:", error);
+        toast.error("Erro ao gerar novas cobranças");
+        return;
+      }
+
+      const newInvoices = (inserted || []).map((row) => mapRow(row, []));
+      setInvoices((prev) => [...newInvoices, ...prev]);
+    },
+    [user, invoices]
+  );
+
   const updatePendingInvoiceAmounts = useCallback(
     async (patientId: string, newAmount: number): Promise<number> => {
       const today = startOfDay(new Date());
@@ -707,6 +794,7 @@ export function useInvoices() {
     deleteInvoice,
     deletePatientInvoices,
     deleteFuturePatientInvoices,
+    regeneratePatientInvoices,
     getPatientInvoices,
     getInvoicesByMonth,
     getInvoiceIncomeByPaymentMonth,
