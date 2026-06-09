@@ -630,6 +630,10 @@ export function useBills() {
       const bill = bills.find((b) => b.id === id);
       if (!bill || !user) return;
 
+      // dueDate changes only apply to the single bill being edited.
+      // Propagating a fixed date to future bills collapses them all to the same month.
+      const applyDueDate = scope === "only_this";
+
       const buildUpdates = (b: Bill) => {
         const updates: any = {};
         if (data.description !== undefined)
@@ -640,7 +644,7 @@ export function useBills() {
           updates.subcategory = data.subcategory;
         if (data.recurrence !== undefined) updates.recurrence = data.recurrence;
         if (data.notes !== undefined) updates.notes = data.notes;
-        if (data.dueDate !== undefined) {
+        if (applyDueDate && data.dueDate !== undefined) {
           updates.due_date = data.dueDate.toISOString();
           if (b.status !== "paid" && b.status !== "partially_paid") {
             updates.status = isBefore(startOfDay(data.dueDate), today)
