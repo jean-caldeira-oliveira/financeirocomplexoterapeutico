@@ -185,12 +185,12 @@ function buildDailyBuckets(from: Date, to: Date): Date[] {
 const Index = () => {
   const [selectedMonth, setSelectedMonth] = useState(new Date());
 
-  // Independent date-range state for each chart (default: current month)
+  // Independent date-range state for each chart (default: current week)
   const [incomeDateRange, setIncomeDateRange] = useState<DateRange>(() =>
-    getPresetRange("month", new Date())
+    getPresetRange("week", new Date())
   );
   const [expenseDateRange, setExpenseDateRange] = useState<DateRange>(() =>
-    getPresetRange("month", new Date())
+    getPresetRange("week", new Date())
   );
 
   const {
