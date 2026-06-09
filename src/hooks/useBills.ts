@@ -806,18 +806,31 @@ export function useBills() {
   // Get actual expense (paid bills, by payment date) within [from, to]
   const getBillsActualExpenseByDateRange = useCallback(
     (from: Date, to: Date): number => {
-      return bills
-        .filter((b) => {
-          if (b.status !== "paid") return false;
+      let total = 0;
+      for (const b of bills) {
+        // New system: sum individual payment records that fall in range
+        if (b.payments && b.payments.length > 0) {
+          for (const p of b.payments) {
+            const pDate = new Date(p.paymentDate);
+            if (pDate >= from && pDate <= to) {
+              total += p.amount;
+            }
+          }
+        } else {
+          // Legacy: single payment date on the bill itself
+          if (b.status !== "paid") continue;
           const payDate = b.paymentDate
             ? new Date(b.paymentDate)
             : b.paidAt
             ? new Date(b.paidAt)
             : null;
-          if (!payDate) return false;
-          return payDate >= from && payDate <= to;
-        })
-        .reduce((sum, b) => sum + (b.paidAmount ?? b.amount), 0);
+          if (!payDate) continue;
+          if (payDate >= from && payDate <= to) {
+            total += b.paidAmount ?? b.amount;
+          }
+        }
+      }
+      return total;
     },
     [bills]
   );
