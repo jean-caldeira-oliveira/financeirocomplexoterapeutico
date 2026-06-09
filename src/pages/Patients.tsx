@@ -62,6 +62,7 @@ const Patients = () => {
   const {
     generateInvoicesForPatient,
     deletePatientInvoices,
+    deleteFuturePatientInvoices,
     updatePendingInvoiceAmounts,
   } = useInvoices();
   const [formOpen, setFormOpen] = useState(false);
@@ -73,6 +74,7 @@ const Patients = () => {
     data: PatientFormData;
     oldFee: number;
   } | null>(null);
+  const [deactivateConfirm, setDeactivateConfirm] = useState<Patient | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
   const [wardFilter, setWardFilter] = useState<WardFilter>("all");
   const [referralFilter, setReferralFilter] = useState<ReferralFilter>("all");
@@ -161,6 +163,21 @@ const Patients = () => {
 
     setFeeChangeConfirm(null);
     setEditingPatient(null);
+  };
+
+  const handleToggleActive = (patient: Patient) => {
+    if (patient.active) {
+      setDeactivateConfirm(patient);
+    } else {
+      togglePatientActive(patient.id);
+    }
+  };
+
+  const handleConfirmDeactivate = async () => {
+    if (!deactivateConfirm) return;
+    await togglePatientActive(deactivateConfirm.id);
+    await deleteFuturePatientInvoices(deactivateConfirm.id);
+    setDeactivateConfirm(null);
   };
 
   const handleStartEdit = (patient: Patient) => {
@@ -323,7 +340,10 @@ const Patients = () => {
               onEdit={handleStartEdit}
               onDelete={deletePatient}
               onView={handleView}
-              onToggleActive={togglePatientActive}
+              onToggleActive={(id) => {
+                const patient = patients.find((p) => p.id === id);
+                if (patient) handleToggleActive(patient);
+              }}
             />
           )}
         </div>
@@ -366,6 +386,49 @@ const Patients = () => {
         onUpdate={updateSource}
         onDelete={deleteSource}
       />
+
+      {/* Deactivate Patient Confirmation */}
+      <AlertDialog
+        open={!!deactivateConfirm}
+        onOpenChange={(open) => !open && setDeactivateConfirm(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desativar paciente?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3">
+                <p>
+                  Você tem certeza que deseja desativar{" "}
+                  <strong>{deactivateConfirm?.name}</strong>?
+                </p>
+                <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                  <p className="font-semibold">⚠️ Atenção:</p>
+                  <p className="mt-1">
+                    Todas as parcelas <strong>atuais e futuras</strong> deste
+                    paciente que ainda não foram pagas serão{" "}
+                    <strong>removidas permanentemente</strong>.
+                  </p>
+                  <p className="mt-1 text-xs opacity-80">
+                    Parcelas já pagas não serão afetadas.
+                  </p>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Esta ação não pode ser desfeita.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDeactivate}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Sim, desativar e remover parcelas
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Fee Change Confirmation */}
       <AlertDialog

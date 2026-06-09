@@ -449,6 +449,29 @@ export function useInvoices() {
     setInvoices((prev) => prev.filter((inv) => inv.patientId !== patientId));
   }, []);
 
+  const deleteFuturePatientInvoices = useCallback(async (patientId: string): Promise<number> => {
+    const today = startOfDay(new Date());
+    const toDelete = invoices.filter((inv) => {
+      if (inv.patientId !== patientId) return false;
+      if (inv.status === "paid") return false;
+      const dueDate = startOfDay(new Date(inv.dueDate));
+      return !isBefore(dueDate, today);
+    });
+
+    if (toDelete.length === 0) return 0;
+
+    const ids = toDelete.map((inv) => inv.id);
+    const { error } = await supabase.from("invoices").delete().in("id", ids);
+    if (error) {
+      console.error("Error deleting future invoices:", error);
+      toast.error("Erro ao remover parcelas futuras");
+      return 0;
+    }
+
+    setInvoices((prev) => prev.filter((inv) => !ids.includes(inv.id)));
+    return ids.length;
+  }, [invoices]);
+
   const updatePendingInvoiceAmounts = useCallback(
     async (patientId: string, newAmount: number): Promise<number> => {
       const today = startOfDay(new Date());
@@ -683,6 +706,7 @@ export function useInvoices() {
     markAsPending,
     deleteInvoice,
     deletePatientInvoices,
+    deleteFuturePatientInvoices,
     getPatientInvoices,
     getInvoicesByMonth,
     getInvoiceIncomeByPaymentMonth,
