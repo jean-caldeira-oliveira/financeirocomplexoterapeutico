@@ -57,7 +57,9 @@ function ItemRow({ item, color }: { item: DueItem; color: "red" | "yellow" }) {
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium truncate">{item.description}</p>
+        <p className="text-sm font-medium truncate">
+          {item.description.length > 55 ? item.description.slice(0, 55) + "…" : item.description}
+        </p>
         <div className="mt-1 flex items-center gap-2">
           <span className={`text-xs ${textClass}`}>{getDaysLabel(item.daysUntilDue)}</span>
           <Badge variant="outline" className={`text-xs ${badgeClass}`}>
