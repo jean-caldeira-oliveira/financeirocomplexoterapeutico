@@ -167,20 +167,20 @@ export function DueAlerts() {
 
   return (
     <ScrollArea className="h-[420px] pr-2">
-      <Accordion type="multiple" defaultValue={["overdue-invoices"]} className="space-y-2">
+      <Accordion type="multiple" defaultValue={[]} className="space-y-2">
         <AccordionSection
           value="overdue-invoices"
-          label="Cobranças Vencidas"
+          label="Cobranças Atrasadas"
           items={overdueInvoices}
           color="red"
           emptyText="Nenhuma cobrança vencida"
         />
         <AccordionSection
           value="upcoming-invoices"
-          label="Cobranças a Vencer"
+          label="Cobranças a Realizar"
           items={upcomingInvoices}
           color="yellow"
-          emptyText="Nenhuma cobrança a vencer nos próximos 7 dias"
+          emptyText="Nenhuma cobrança a realizar nos próximos 7 dias"
           subtitle="próximos 7 dias"
         />
         <AccordionSection
