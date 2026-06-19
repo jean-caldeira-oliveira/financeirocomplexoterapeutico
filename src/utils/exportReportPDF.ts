@@ -221,7 +221,7 @@ export function exportTransactionsPDF(
       categoryLabels[t.category] || t.category,
       t.description,
       fmt(t.amount),
-      t.status === 'paid' ? 'Pago' : t.status === 'overdue' ? 'Atrasado' : t.status === 'pending' ? 'Pendente' : '-',
+      t.status === 'paid' ? 'Pago' : t.status === 'overdue' ? 'Atrasado' : t.status === 'pending' ? 'Pendente' : t.status === 'pre_system' ? 'Anterior ao Sistema' : '-',
     ]),
     theme: 'grid',
     headStyles: HEAD_STYLE,

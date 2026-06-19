@@ -210,6 +210,13 @@ const Bills = () => {
             {billStatusLabels[status]}
           </Badge>
         );
+      case "pre_system":
+        return (
+          <Badge className="gap-1 bg-slate-500 hover:bg-slate-600 text-white">
+            <Clock className="h-3 w-3" />
+            {billStatusLabels[status]}
+          </Badge>
+        );
     }
   };
 
@@ -358,6 +365,7 @@ const Bills = () => {
                   { value: "partially_paid", label: "Parcialmente Pagos" },
                   { value: "pending", label: "Pendentes" },
                   { value: "overdue", label: "Atrasados" },
+                  { value: "pre_system", label: "Anterior ao Sistema" },
                 ].map((opt) => (
                   <label
                     key={opt.value}

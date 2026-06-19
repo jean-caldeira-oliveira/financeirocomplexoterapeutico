@@ -114,7 +114,7 @@ export function exportMonthlyReport(data: ReportData) {
     doc.text('Cobranças do Mês', 14, y);
     y += 2;
 
-    const statusMap: Record<string, string> = { pending: 'Pendente', paid: 'Recebido', overdue: 'Atrasado' };
+    const statusMap: Record<string, string> = { pending: 'Pendente', paid: 'Recebido', overdue: 'Atrasado', pre_system: 'Anterior ao Sistema' };
 
     autoTable(doc, {
       startY: y,
@@ -148,7 +148,7 @@ export function exportMonthlyReport(data: ReportData) {
     doc.text('Contas a Pagar do Mês', 14, y);
     y += 2;
 
-    const statusMap: Record<string, string> = { pending: 'Pendente', paid: 'Pago', overdue: 'Atrasado' };
+    const statusMap: Record<string, string> = { pending: 'Pendente', paid: 'Pago', overdue: 'Atrasado', pre_system: 'Anterior ao Sistema' };
 
     autoTable(doc, {
       startY: y,

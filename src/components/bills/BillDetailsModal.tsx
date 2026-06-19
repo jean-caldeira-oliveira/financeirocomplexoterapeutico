@@ -79,6 +79,13 @@ function StatusBadge({ status }: { status: Bill["status"] }) {
           {billStatusLabels[status]}
         </Badge>
       );
+    case "pre_system":
+      return (
+        <Badge className="gap-1 bg-slate-500 hover:bg-slate-600 text-white">
+          <Clock className="h-3 w-3" />
+          {billStatusLabels[status]}
+        </Badge>
+      );
   }
 }
 

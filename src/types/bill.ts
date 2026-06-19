@@ -13,7 +13,7 @@ export const billPaymentMethodLabels: Record<BillPaymentMethod, string> = {
   boleto: "Boleto",
 };
 
-export type BillStatus = "pending" | "paid" | "overdue" | "partially_paid";
+export type BillStatus = "pending" | "paid" | "overdue" | "partially_paid" | "pre_system";
 
 export type BillRecurrence =
   | "none"
@@ -84,6 +84,7 @@ export const billStatusLabels: Record<BillStatus, string> = {
   paid: "Pago",
   overdue: "Atrasado",
   partially_paid: "Parcialmente Pago",
+  pre_system: "Anterior ao Sistema",
 };
 
 export const billRecurrenceLabels: Record<BillRecurrence, string> = {

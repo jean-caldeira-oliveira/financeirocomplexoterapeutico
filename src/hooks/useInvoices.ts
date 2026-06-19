@@ -108,10 +108,14 @@ const getInvoiceTotalDue = (invoice: Invoice) => {
   return getInvoiceRemainingAmount(invoice) + getInvoiceInterest(invoice);
 };
 
+const SYSTEM_START = new Date(2026, 4, 1); // May 1, 2026
+
 const getStatusByDueDate = (dueDateIso: string): InvoiceStatus => {
   const today = startOfDay(new Date());
   const dueDate = startOfDay(new Date(dueDateIso));
-  return isBefore(dueDate, today) ? "overdue" : "pending";
+  if (!isBefore(dueDate, today)) return "pending";
+  if (isBefore(dueDate, SYSTEM_START)) return "pre_system";
+  return "overdue";
 };
 
 export function useInvoices() {

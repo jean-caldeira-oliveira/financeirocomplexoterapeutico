@@ -1,4 +1,4 @@
-export type InvoiceStatus = 'pending' | 'paid' | 'overdue';
+export type InvoiceStatus = 'pending' | 'paid' | 'overdue' | 'pre_system';
 
 export type InvoiceType = 'enrollment' | 'monthly' | 'contract_break' | 'damage' | 'extra_service';
 
@@ -40,6 +40,7 @@ export const invoiceStatusLabels: Record<InvoiceStatus, string> = {
   pending: 'Pendente',
   paid: 'Recebido',
   overdue: 'Atrasado',
+  pre_system: 'Anterior ao Sistema',
 };
 
 export const invoiceTypeLabels: Record<InvoiceType, string> = {

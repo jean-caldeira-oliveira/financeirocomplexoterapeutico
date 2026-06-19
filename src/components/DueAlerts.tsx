@@ -26,7 +26,7 @@ export function DueAlerts() {
 
     // Add invoices
     invoices
-      .filter((inv) => inv.status !== "paid")
+      .filter((inv) => inv.status !== "paid" && inv.status !== "pre_system")
       .forEach((inv) => {
         const dueDate = startOfDay(new Date(inv.dueDate));
         const daysUntilDue = differenceInDays(dueDate, today);
@@ -47,7 +47,7 @@ export function DueAlerts() {
 
     // Add bills
     bills
-      .filter((bill) => bill.status !== "paid")
+      .filter((bill) => bill.status !== "paid" && bill.status !== "pre_system")
       .forEach((bill) => {
         const dueDate = startOfDay(new Date(bill.dueDate));
         const daysUntilDue = differenceInDays(dueDate, today);

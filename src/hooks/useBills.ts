@@ -72,7 +72,12 @@ const computeStatus = (
   // No payments recorded — check due date
   const today = startOfDay(new Date());
   const due = startOfDay(new Date(dueDate));
-  if (isBefore(due, today)) return "overdue";
+  if (isBefore(due, today)) {
+    // Bills due before the system went live (May 2026) are shown as pre-system
+    const systemStart = new Date(2026, 4, 1); // May 1, 2026
+    if (isBefore(due, systemStart)) return "pre_system";
+    return "overdue";
+  }
   return "pending";
 };
 
@@ -509,8 +514,9 @@ export function useBills() {
       await supabase.from("bill_payments").delete().eq("bill_id", id);
 
       const dueDate = startOfDay(new Date(bill.dueDate));
+      const systemStart = new Date(2026, 4, 1);
       const newStatus: BillStatus = isBefore(dueDate, today)
-        ? "overdue"
+        ? isBefore(dueDate, systemStart) ? "pre_system" : "overdue"
         : "pending";
 
       const { error } = await supabase

@@ -498,6 +498,7 @@ export default function Reports() {
                         <SelectItem value="paid">Recebido</SelectItem>
                         <SelectItem value="pending">Pendente</SelectItem>
                         <SelectItem value="overdue">Atrasado</SelectItem>
+                        <SelectItem value="pre_system">Anterior ao Sistema</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -637,7 +638,7 @@ export default function Reports() {
                           <TableCell className="text-primary font-medium">{formatCurrency(getInvoicePaidAmount(inv))}</TableCell>
                           <TableCell className="text-muted-foreground">{formatCurrency(getInvoiceRemainingAmount(inv))}</TableCell>
                           <TableCell>
-                            <Badge variant={inv.status === 'paid' ? 'default' : inv.status === 'overdue' ? 'destructive' : 'secondary'}>
+                            <Badge variant={inv.status === 'paid' ? 'default' : inv.status === 'overdue' ? 'destructive' : inv.status === 'pre_system' ? 'outline' : 'secondary'}>
                               {invoiceStatusLabels[inv.status]}
                             </Badge>
                           </TableCell>
@@ -737,6 +738,7 @@ export default function Reports() {
                         <SelectItem value="paid">Pagos</SelectItem>
                         <SelectItem value="pending">Pendentes</SelectItem>
                         <SelectItem value="overdue">Atrasados</SelectItem>
+                        <SelectItem value="pre_system">Anterior ao Sistema</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -863,7 +865,7 @@ export default function Reports() {
                           {b.paymentMethod && (
                             <Badge variant="outline" className="text-xs mr-1">{billPaymentMethodLabels[b.paymentMethod]}</Badge>
                           )}
-                          <Badge variant={b.status === 'paid' ? 'default' : b.status === 'overdue' ? 'destructive' : 'secondary'}>
+                          <Badge variant={b.status === 'paid' ? 'default' : b.status === 'overdue' ? 'destructive' : b.status === 'pre_system' ? 'outline' : 'secondary'}>
                             {billStatusLabels[b.status]}
                           </Badge>
                         </TableCell>
