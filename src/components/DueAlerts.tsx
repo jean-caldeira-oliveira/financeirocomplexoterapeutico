@@ -78,21 +78,26 @@ function AccordionSection({
   items,
   color,
   emptyText,
+  subtitle,
 }: {
   value: string;
   label: string;
   items: DueItem[];
   color: "red" | "yellow";
   emptyText: string;
+  subtitle?: string;
 }) {
   const countClass = color === "red" ? "text-red-500" : "text-yellow-600";
 
   return (
     <AccordionItem value={value} className="border rounded-lg px-3">
       <AccordionTrigger className="text-sm font-medium hover:no-underline py-3">
-        <span>
+        <span className="flex items-baseline gap-2">
           {label}{" "}
           <span className={`font-semibold ${countClass}`}>({items.length})</span>
+          {subtitle && (
+            <span className="text-xs font-normal text-muted-foreground">{subtitle}</span>
+          )}
         </span>
       </AccordionTrigger>
       <AccordionContent>
@@ -149,9 +154,9 @@ export function DueAlerts() {
 
     return {
       overdueInvoices: invoiceItems.filter((i) => i.isOverdue),
-      upcomingInvoices: invoiceItems.filter((i) => !i.isOverdue),
+      upcomingInvoices: invoiceItems.filter((i) => !i.isOverdue && i.daysUntilDue <= 7),
       overdueBills: billItems.filter((i) => i.isOverdue),
-      upcomingBills: billItems.filter((i) => !i.isOverdue),
+      upcomingBills: billItems.filter((i) => !i.isOverdue && i.daysUntilDue <= 7),
     };
   }, [invoices, bills]);
 
@@ -170,7 +175,8 @@ export function DueAlerts() {
           label="Cobranças a Vencer"
           items={upcomingInvoices}
           color="yellow"
-          emptyText="Nenhuma cobrança a vencer"
+          emptyText="Nenhuma cobrança a vencer nos próximos 7 dias"
+          subtitle="próximos 7 dias"
         />
         <AccordionSection
           value="overdue-bills"
@@ -184,7 +190,8 @@ export function DueAlerts() {
           label="Contas a Vencer"
           items={upcomingBills}
           color="yellow"
-          emptyText="Nenhuma conta a vencer"
+          emptyText="Nenhuma conta a vencer nos próximos 7 dias"
+          subtitle="próximos 7 dias"
         />
       </Accordion>
     </ScrollArea>
