@@ -88,16 +88,21 @@ function AccordionSection({
   subtitle?: string;
 }) {
   const countClass = color === "red" ? "text-red-500" : "text-yellow-600";
+  const totalClass = color === "red" ? "text-red-600 dark:text-red-400" : "text-yellow-700 dark:text-yellow-400";
+  const total = items.reduce((sum, i) => sum + i.amount, 0);
 
   return (
     <AccordionItem value={value} className="border rounded-lg px-3">
       <AccordionTrigger className="text-sm font-medium hover:no-underline py-3">
-        <span className="flex items-baseline gap-2">
+        <span className="flex items-baseline gap-2 flex-1 mr-2">
           {label}{" "}
           <span className={`font-semibold ${countClass}`}>({items.length})</span>
           {subtitle && (
             <span className="text-xs font-normal text-muted-foreground">{subtitle}</span>
           )}
+          <span className={`ml-auto text-xs font-semibold ${totalClass}`}>
+            {formatCurrency(total)}
+          </span>
         </span>
       </AccordionTrigger>
       <AccordionContent>
