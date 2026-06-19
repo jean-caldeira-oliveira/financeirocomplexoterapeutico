@@ -63,6 +63,7 @@ export function useAuditLog(selectedMonth: Date) {
       .select("*")
       .gte("created_at", from)
       .lt("created_at", to)
+      .not("app_module", "is", null)
       .order("created_at", { ascending: false });
 
     if (error) {
