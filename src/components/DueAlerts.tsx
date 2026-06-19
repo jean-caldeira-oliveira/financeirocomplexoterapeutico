@@ -1,9 +1,15 @@
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useBills } from "@/hooks/useBills";
 import { useInvoices } from "@/hooks/useInvoices";
-import { differenceInDays, format, startOfDay } from "date-fns";
-import { AlertTriangle, Clock, FileText, Receipt } from "lucide-react";
+import { differenceInDays, startOfDay } from "date-fns";
+import { FileText, Receipt } from "lucide-react";
 import { useMemo } from "react";
 
 interface DueItem {
@@ -16,190 +22,171 @@ interface DueItem {
   isOverdue: boolean;
 }
 
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
+
+const getDaysLabel = (days: number) => {
+  if (days < 0) {
+    const abs = Math.abs(days);
+    return `${abs} dia${abs > 1 ? "s" : ""} atrasado`;
+  }
+  if (days === 0) return "Vence hoje";
+  if (days === 1) return "Vence amanhã";
+  return `Vence em ${days} dias`;
+};
+
+function ItemRow({ item, color }: { item: DueItem; color: "red" | "yellow" }) {
+  const borderClass = color === "red"
+    ? "border-red-200 bg-red-50 dark:border-red-900/50 dark:bg-red-900/20"
+    : "border-yellow-200 bg-yellow-50 dark:border-yellow-900/50 dark:bg-yellow-900/20";
+  const textClass = color === "red"
+    ? "text-red-600 dark:text-red-400"
+    : "text-yellow-700 dark:text-yellow-400";
+  const badgeClass = color === "red"
+    ? "border-red-300 text-red-600"
+    : "border-yellow-300 text-yellow-700";
+  const iconClass = color === "red" ? "text-red-500" : "text-yellow-600";
+
+  return (
+    <div className={`flex items-center gap-3 rounded-lg border p-3 ${borderClass}`}>
+      <div>
+        {item.type === "invoice" ? (
+          <Receipt className={`h-4 w-4 ${iconClass}`} />
+        ) : (
+          <FileText className={`h-4 w-4 ${iconClass}`} />
+        )}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium truncate">{item.description}</p>
+        <div className="mt-1 flex items-center gap-2">
+          <span className={`text-xs ${textClass}`}>{getDaysLabel(item.daysUntilDue)}</span>
+          <Badge variant="outline" className={`text-xs ${badgeClass}`}>
+            {item.type === "invoice" ? "Mensalidade" : "Conta"}
+          </Badge>
+        </div>
+      </div>
+      <span className={`text-sm font-semibold shrink-0 ${textClass}`}>
+        {formatCurrency(item.amount)}
+      </span>
+    </div>
+  );
+}
+
+function AccordionSection({
+  value,
+  label,
+  items,
+  color,
+  emptyText,
+}: {
+  value: string;
+  label: string;
+  items: DueItem[];
+  color: "red" | "yellow";
+  emptyText: string;
+}) {
+  const countClass = color === "red" ? "text-red-500" : "text-yellow-600";
+
+  return (
+    <AccordionItem value={value} className="border rounded-lg px-3">
+      <AccordionTrigger className="text-sm font-medium hover:no-underline py-3">
+        <span>
+          {label}{" "}
+          <span className={`font-semibold ${countClass}`}>({items.length})</span>
+        </span>
+      </AccordionTrigger>
+      <AccordionContent>
+        <div className="space-y-2 pb-3">
+          {items.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-2">{emptyText}</p>
+          ) : (
+            items.map((item) => (
+              <ItemRow key={`${item.type}-${item.id}`} item={item} color={color} />
+            ))
+          )}
+        </div>
+      </AccordionContent>
+    </AccordionItem>
+  );
+}
+
 export function DueAlerts() {
   const { invoices } = useInvoices();
   const { bills } = useBills();
 
-  const dueItems = useMemo(() => {
+  const { overdueInvoices, upcomingInvoices, overdueBills, upcomingBills } = useMemo(() => {
     const today = startOfDay(new Date());
-    const items: DueItem[] = [];
 
-    // Add invoices
-    invoices
+    const toItem = (
+      id: string,
+      type: "invoice" | "bill",
+      description: string,
+      amount: number,
+      rawDueDate: string | Date
+    ): DueItem => {
+      const dueDate = startOfDay(new Date(rawDueDate));
+      const daysUntilDue = differenceInDays(dueDate, today);
+      return { id, type, description, amount, dueDate, daysUntilDue, isOverdue: daysUntilDue < 0 };
+    };
+
+    const invoiceItems = invoices
       .filter((inv) => inv.status !== "paid" && inv.status !== "pre_system")
-      .forEach((inv) => {
-        const dueDate = startOfDay(new Date(inv.dueDate));
-        const daysUntilDue = differenceInDays(dueDate, today);
+      .map((inv) =>
+        toItem(
+          inv.id,
+          "invoice",
+          `${inv.patientName} - Parcela ${inv.installmentNumber}/${inv.totalInstallments}`,
+          inv.amount,
+          inv.dueDate
+        )
+      )
+      .sort((a, b) => a.daysUntilDue - b.daysUntilDue);
 
-        // Include overdue and upcoming (next 7 days)
-        if (daysUntilDue <= 7) {
-          items.push({
-            id: inv.id,
-            type: "invoice",
-            description: `${inv.patientName} - Parcela ${inv.installmentNumber}/${inv.totalInstallments}`,
-            amount: inv.amount,
-            dueDate,
-            daysUntilDue,
-            isOverdue: daysUntilDue < 0,
-          });
-        }
-      });
-
-    // Add bills
-    bills
+    const billItems = bills
       .filter((bill) => bill.status !== "paid" && bill.status !== "pre_system")
-      .forEach((bill) => {
-        const dueDate = startOfDay(new Date(bill.dueDate));
-        const daysUntilDue = differenceInDays(dueDate, today);
+      .map((bill) => toItem(bill.id, "bill", bill.description, bill.amount, bill.dueDate))
+      .sort((a, b) => a.daysUntilDue - b.daysUntilDue);
 
-        if (daysUntilDue <= 7) {
-          items.push({
-            id: bill.id,
-            type: "bill",
-            description: bill.description,
-            amount: bill.amount,
-            dueDate,
-            daysUntilDue,
-            isOverdue: daysUntilDue < 0,
-          });
-        }
-      });
-
-    // Sort by due date (overdue first, then by days until due)
-    return items.sort((a, b) => a.daysUntilDue - b.daysUntilDue);
+    return {
+      overdueInvoices: invoiceItems.filter((i) => i.isOverdue),
+      upcomingInvoices: invoiceItems.filter((i) => !i.isOverdue),
+      overdueBills: billItems.filter((i) => i.isOverdue),
+      upcomingBills: billItems.filter((i) => !i.isOverdue),
+    };
   }, [invoices, bills]);
 
-  const overdueItems = dueItems.filter((item) => item.isOverdue);
-  const upcomingItems = dueItems.filter((item) => !item.isOverdue);
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
-  };
-
-  const getDaysLabel = (days: number) => {
-    if (days < 0) {
-      const absDays = Math.abs(days);
-      return `${absDays} dia${absDays > 1 ? "s" : ""} atrasado`;
-    }
-    if (days === 0) return "Vence hoje";
-    if (days === 1) return "Vence amanhã";
-    return `Vence em ${days} dias`;
-  };
-
-  if (dueItems.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-8 text-center">
-        <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/30">
-          <Clock className="h-6 w-6 text-green-600 dark:text-green-400" />
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Nenhum vencimento próximo
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <ScrollArea className="h-[400px] pr-4">
-      <div className="space-y-4">
-        {/* Overdue Section */}
-        {overdueItems.length > 0 && (
-          <div>
-            <div className="mb-2 flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-red-500" />
-              <span className="text-sm font-medium text-red-600 dark:text-red-400">
-                Atrasados ({overdueItems.length})
-              </span>
-            </div>
-            <div className="space-y-2">
-              {overdueItems.map((item) => (
-                <div
-                  key={`${item.type}-${item.id}`}
-                  className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-900/50 dark:bg-red-900/20"
-                >
-                  <div className="mt-0.5">
-                    {item.type === "invoice" ? (
-                      <Receipt className="h-4 w-4 text-red-500" />
-                    ) : (
-                      <FileText className="h-4 w-4 text-red-500" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {item.description}
-                    </p>
-                    <div className="mt-1 flex items-center gap-2">
-                      <span className="text-xs text-red-600 dark:text-red-400">
-                        {getDaysLabel(item.daysUntilDue)}
-                      </span>
-                      <Badge
-                        variant="outline"
-                        className="text-xs border-red-300 text-red-600"
-                      >
-                        {item.type === "invoice" ? "Mensalidade" : "Conta"}
-                      </Badge>
-                    </div>
-                  </div>
-                  <span className="text-sm font-semibold text-red-600 dark:text-red-400">
-                    {formatCurrency(item.amount)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Upcoming Section */}
-        {upcomingItems.length > 0 && (
-          <div>
-            <div className="mb-2 flex items-center gap-2">
-              <Clock className="h-4 w-4 text-yellow-500" />
-              <span className="text-sm font-medium text-yellow-600 dark:text-yellow-400">
-                Próximos vencimentos ({upcomingItems.length})
-              </span>
-            </div>
-            <div className="space-y-2">
-              {upcomingItems.map((item) => (
-                <div
-                  key={`${item.type}-${item.id}`}
-                  className="flex items-start gap-3 rounded-lg border border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-900/50 dark:bg-yellow-900/20"
-                >
-                  <div className="mt-0.5">
-                    {item.type === "invoice" ? (
-                      <Receipt className="h-4 w-4 text-yellow-600" />
-                    ) : (
-                      <FileText className="h-4 w-4 text-yellow-600" />
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {item.description}
-                    </p>
-                    <div className="mt-1 flex items-center gap-2">
-                      <span className="text-xs text-yellow-700 dark:text-yellow-400">
-                        {getDaysLabel(item.daysUntilDue)} •{" "}
-                        {format(item.dueDate, "dd/MM")}
-                      </span>
-                      <Badge
-                        variant="outline"
-                        className="text-xs border-yellow-300 text-yellow-700"
-                      >
-                        {item.type === "invoice" ? "Mensalidade" : "Conta"}
-                      </Badge>
-                    </div>
-                  </div>
-                  <span className="text-sm font-semibold text-yellow-700 dark:text-yellow-400">
-                    {formatCurrency(item.amount)}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
+    <ScrollArea className="h-[420px] pr-2">
+      <Accordion type="multiple" defaultValue={["overdue-invoices"]} className="space-y-2">
+        <AccordionSection
+          value="overdue-invoices"
+          label="Cobranças Vencidas"
+          items={overdueInvoices}
+          color="red"
+          emptyText="Nenhuma cobrança vencida"
+        />
+        <AccordionSection
+          value="upcoming-invoices"
+          label="Cobranças a Vencer"
+          items={upcomingInvoices}
+          color="yellow"
+          emptyText="Nenhuma cobrança a vencer"
+        />
+        <AccordionSection
+          value="overdue-bills"
+          label="Contas Vencidas"
+          items={overdueBills}
+          color="red"
+          emptyText="Nenhuma conta vencida"
+        />
+        <AccordionSection
+          value="upcoming-bills"
+          label="Contas a Vencer"
+          items={upcomingBills}
+          color="yellow"
+          emptyText="Nenhuma conta a vencer"
+        />
+      </Accordion>
     </ScrollArea>
   );
 }
