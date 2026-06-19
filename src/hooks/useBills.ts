@@ -9,6 +9,7 @@ import {
   BillRecurrence,
   BillStatus,
 } from "@/types/bill";
+import { writeAuditLog } from "@/utils/auditLog";
 import {
   addMonths,
   addWeeks,
@@ -308,6 +309,18 @@ export function useBills() {
         );
       }
 
+      // Write to global audit_log
+      await writeAuditLog({
+        userId: user!.id,
+        userName: user!.user_metadata?.full_name ?? user!.email ?? "Usuário",
+        userEmail: user!.email ?? undefined,
+        module: "contas",
+        action: "criar",
+        description: `${newBills.length} conta(s) criada(s): "${data.description}"`,
+        entityName: data.description,
+        entityId: newBills[0]?.id,
+      });
+
       toast.success(
         newBills.length > 1
           ? `${newBills.length} contas criadas`
@@ -395,6 +408,19 @@ export function useBills() {
         )} via ${methodLabel} — status: ${newStatus}`
       );
 
+      await writeAuditLog({
+        userId: user.id,
+        userName: user.user_metadata?.full_name ?? user.email ?? "Usuário",
+        userEmail: user.email ?? undefined,
+        module: "contas",
+        action: newStatus === "paid" ? "pagar" : "pagamento_parcial",
+        description: `Pagamento de R$${totalAmount.toFixed(
+          2
+        )} via ${methodLabel} na conta "${bill.description}"`,
+        entityName: bill.description,
+        entityId: billId,
+      });
+
       toast.success(
         newStatus === "paid" ? "Conta quitada!" : "Pagamento parcial registrado"
       );
@@ -455,6 +481,17 @@ export function useBills() {
         "revert_payment",
         `Pagamento estornado — novo status: ${newStatus}`
       );
+
+      await writeAuditLog({
+        userId: user.id,
+        userName: user.user_metadata?.full_name ?? user.email ?? "Usuário",
+        userEmail: user.email ?? undefined,
+        module: "contas",
+        action: "reverter_pagamento",
+        description: `Pagamento estornado na conta "${bill.description}" — novo status: ${newStatus}`,
+        entityName: bill.description,
+        entityId: billId,
+      });
 
       toast.success("Pagamento estornado");
     },
@@ -518,6 +555,19 @@ export function useBills() {
         `Todos os pagamentos removidos — status revertido para ${newStatus}`
       );
 
+      await writeAuditLog({
+        userId: user.id,
+        userName: user.user_metadata?.full_name ?? user.email ?? "Usuário",
+        userEmail: user.email ?? undefined,
+        module: "contas",
+        action: "reverter_pagamento",
+        description: `Todos os pagamentos removidos da conta "${
+          bill?.description ?? id
+        }" — status: ${newStatus}`,
+        entityName: bill?.description ?? undefined,
+        entityId: id,
+      });
+
       toast.success("Pagamento desfeito");
     },
     [bills, user]
@@ -542,6 +592,16 @@ export function useBills() {
           "delete",
           `Conta excluída: "${bill.description}"`
         );
+        await writeAuditLog({
+          userId: user.id,
+          userName: user.user_metadata?.full_name ?? user.email ?? "Usuário",
+          userEmail: user.email ?? undefined,
+          module: "contas",
+          action: "excluir",
+          description: `Conta excluída: "${bill.description}"`,
+          entityName: bill.description,
+          entityId: id,
+        });
       }
       toast.success("Conta excluída");
     },
@@ -720,6 +780,17 @@ export function useBills() {
         "edit",
         `Conta editada (${scopeLabel}): "${bill.description}"`
       );
+
+      await writeAuditLog({
+        userId: user.id,
+        userName: user.user_metadata?.full_name ?? user.email ?? "Usuário",
+        userEmail: user.email ?? undefined,
+        module: "contas",
+        action: "editar",
+        description: `Conta editada (${scopeLabel}): "${bill.description}"`,
+        entityName: bill.description,
+        entityId: id,
+      });
 
       toast.success("Conta atualizada");
     },

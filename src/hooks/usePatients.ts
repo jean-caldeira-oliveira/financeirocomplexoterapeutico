@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Patient, Ward } from '@/types/transaction';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'sonner';
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { Patient, Ward } from "@/types/transaction";
+import { writeAuditLog } from "@/utils/auditLog";
+import { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 
 export interface AddPatientData {
   name: string;
@@ -48,136 +49,232 @@ export function usePatients() {
   const { user } = useAuth();
 
   const fetchPatients = useCallback(async () => {
-    if (!user) { setPatients([]); setIsLoading(false); return; }
+    if (!user) {
+      setPatients([]);
+      setIsLoading(false);
+      return;
+    }
     const { data, error } = await supabase
-      .from('patients')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .from("patients")
+      .select("*")
+      .order("created_at", { ascending: false });
 
     if (error) {
-      console.error('Error fetching patients:', error);
-      toast.error('Erro ao carregar pacientes');
+      console.error("Error fetching patients:", error);
+      toast.error("Erro ao carregar pacientes");
     } else {
       setPatients((data || []).map(mapRow));
     }
     setIsLoading(false);
   }, [user]);
 
-  useEffect(() => { fetchPatients(); }, [fetchPatients]);
+  useEffect(() => {
+    fetchPatients();
+  }, [fetchPatients]);
 
-  const addPatient = useCallback(async (data: AddPatientData): Promise<Patient> => {
-    const row = {
-      user_id: user!.id,
-      name: data.name,
-      entry_date: data.entryDate.toISOString(),
-      due_day: data.dueDay,
-      monthly_fee: data.monthlyFee,
-      installments: data.installments,
-      has_enrollment_fee: data.hasEnrollmentFee,
-      enrollment_fee: data.enrollmentFee,
-      enrollment_due_date: data.enrollmentDueDate?.toISOString() ?? null,
-      first_installment_date: data.firstInstallmentDate?.toISOString() ?? null,
-      guardian_name: data.guardianName,
-      guardian_contact: data.guardianContact,
-      ward: data.ward,
-      referral_source: data.referralSource,
-      interest_rate_monthly: data.interestRateMonthly,
-      active: true,
-    };
+  const addPatient = useCallback(
+    async (data: AddPatientData): Promise<Patient> => {
+      const row = {
+        user_id: user!.id,
+        name: data.name,
+        entry_date: data.entryDate.toISOString(),
+        due_day: data.dueDay,
+        monthly_fee: data.monthlyFee,
+        installments: data.installments,
+        has_enrollment_fee: data.hasEnrollmentFee,
+        enrollment_fee: data.enrollmentFee,
+        enrollment_due_date: data.enrollmentDueDate?.toISOString() ?? null,
+        first_installment_date:
+          data.firstInstallmentDate?.toISOString() ?? null,
+        guardian_name: data.guardianName,
+        guardian_contact: data.guardianContact,
+        ward: data.ward,
+        referral_source: data.referralSource,
+        interest_rate_monthly: data.interestRateMonthly,
+        active: true,
+      };
 
-    const { data: inserted, error } = await supabase
-      .from('patients')
-      .insert(row)
-      .select()
-      .single();
+      const { data: inserted, error } = await supabase
+        .from("patients")
+        .insert(row)
+        .select()
+        .single();
 
-    if (error) {
-      console.error('Error adding patient:', error);
-      toast.error('Erro ao adicionar paciente');
-      throw error;
-    }
+      if (error) {
+        console.error("Error adding patient:", error);
+        toast.error("Erro ao adicionar paciente");
+        throw error;
+      }
 
-    const newPatient = mapRow(inserted);
-    setPatients((prev) => [newPatient, ...prev]);
-    return newPatient;
-  }, [user]);
+      const newPatient = mapRow(inserted);
+      setPatients((prev) => [newPatient, ...prev]);
 
-  const updatePatient = useCallback(async (id: string, data: Partial<AddPatientData>) => {
-    const updates: any = {};
-    if (data.name !== undefined) updates.name = data.name;
-    if (data.entryDate !== undefined) updates.entry_date = data.entryDate.toISOString();
-    if (data.dueDay !== undefined) updates.due_day = data.dueDay;
-    if (data.monthlyFee !== undefined) updates.monthly_fee = data.monthlyFee;
-    if (data.installments !== undefined) updates.installments = data.installments;
-    if (data.hasEnrollmentFee !== undefined) updates.has_enrollment_fee = data.hasEnrollmentFee;
-    if (data.enrollmentFee !== undefined) updates.enrollment_fee = data.enrollmentFee;
-    if (data.enrollmentDueDate !== undefined) updates.enrollment_due_date = data.enrollmentDueDate?.toISOString() ?? null;
-    if (data.firstInstallmentDate !== undefined) updates.first_installment_date = data.firstInstallmentDate?.toISOString() ?? null;
-    if (data.guardianName !== undefined) updates.guardian_name = data.guardianName;
-    if (data.guardianContact !== undefined) updates.guardian_contact = data.guardianContact;
-    if (data.ward !== undefined) updates.ward = data.ward;
-    if (data.referralSource !== undefined) updates.referral_source = data.referralSource;
-    if (data.interestRateMonthly !== undefined) updates.interest_rate_monthly = data.interestRateMonthly;
+      await writeAuditLog({
+        userId: user!.id,
+        userName: user!.user_metadata?.full_name ?? user!.email ?? "Usuário",
+        userEmail: user!.email ?? undefined,
+        module: "pacientes",
+        action: "criar",
+        description: `Paciente criado: "${data.name}"`,
+        entityName: data.name,
+        entityId: newPatient.id,
+      });
 
-    const { error } = await supabase.from('patients').update(updates).eq('id', id);
+      return newPatient;
+    },
+    [user]
+  );
 
-    if (error) {
-      console.error('Error updating patient:', error);
-      toast.error('Erro ao atualizar paciente');
-      return;
-    }
+  const updatePatient = useCallback(
+    async (id: string, data: Partial<AddPatientData>) => {
+      const updates: any = {};
+      if (data.name !== undefined) updates.name = data.name;
+      if (data.entryDate !== undefined)
+        updates.entry_date = data.entryDate.toISOString();
+      if (data.dueDay !== undefined) updates.due_day = data.dueDay;
+      if (data.monthlyFee !== undefined) updates.monthly_fee = data.monthlyFee;
+      if (data.installments !== undefined)
+        updates.installments = data.installments;
+      if (data.hasEnrollmentFee !== undefined)
+        updates.has_enrollment_fee = data.hasEnrollmentFee;
+      if (data.enrollmentFee !== undefined)
+        updates.enrollment_fee = data.enrollmentFee;
+      if (data.enrollmentDueDate !== undefined)
+        updates.enrollment_due_date =
+          data.enrollmentDueDate?.toISOString() ?? null;
+      if (data.firstInstallmentDate !== undefined)
+        updates.first_installment_date =
+          data.firstInstallmentDate?.toISOString() ?? null;
+      if (data.guardianName !== undefined)
+        updates.guardian_name = data.guardianName;
+      if (data.guardianContact !== undefined)
+        updates.guardian_contact = data.guardianContact;
+      if (data.ward !== undefined) updates.ward = data.ward;
+      if (data.referralSource !== undefined)
+        updates.referral_source = data.referralSource;
+      if (data.interestRateMonthly !== undefined)
+        updates.interest_rate_monthly = data.interestRateMonthly;
 
-    setPatients((prev) =>
-      prev.map((p) => {
-        if (p.id !== id) return p;
-        return {
-          ...p,
-          ...data,
-          entryDate: data.entryDate ? data.entryDate.toISOString() : p.entryDate,
-          enrollmentDueDate: data.enrollmentDueDate ? data.enrollmentDueDate.toISOString() : p.enrollmentDueDate,
-          firstInstallmentDate: data.firstInstallmentDate ? data.firstInstallmentDate.toISOString() : p.firstInstallmentDate,
-          dueDay: data.dueDay !== undefined ? data.dueDay : p.dueDay,
-        };
-      })
-    );
-  }, []);
+      const { error } = await supabase
+        .from("patients")
+        .update(updates)
+        .eq("id", id);
 
-  const togglePatientActive = useCallback(async (id: string) => {
-    const patient = patients.find((p) => p.id === id);
-    if (!patient) return;
+      if (error) {
+        console.error("Error updating patient:", error);
+        toast.error("Erro ao atualizar paciente");
+        return;
+      }
 
-    const { error } = await supabase.from('patients').update({ active: !patient.active }).eq('id', id);
-    if (error) {
-      console.error('Error toggling patient:', error);
-      toast.error('Erro ao atualizar paciente');
-      return;
-    }
+      const patient = patients.find((p) => p.id === id);
+      await writeAuditLog({
+        userId: user!.id,
+        userName: user!.user_metadata?.full_name ?? user!.email ?? "Usuário",
+        userEmail: user!.email ?? undefined,
+        module: "pacientes",
+        action: "editar",
+        description: `Paciente editado: "${patient?.name ?? id}"`,
+        entityName: patient?.name ?? undefined,
+        entityId: id,
+      });
 
-    setPatients((prev) =>
-      prev.map((p) => (p.id === id ? { ...p, active: !p.active } : p))
-    );
-  }, [patients]);
+      setPatients((prev) =>
+        prev.map((p) => {
+          if (p.id !== id) return p;
+          return {
+            ...p,
+            ...data,
+            entryDate: data.entryDate
+              ? data.entryDate.toISOString()
+              : p.entryDate,
+            enrollmentDueDate: data.enrollmentDueDate
+              ? data.enrollmentDueDate.toISOString()
+              : p.enrollmentDueDate,
+            firstInstallmentDate: data.firstInstallmentDate
+              ? data.firstInstallmentDate.toISOString()
+              : p.firstInstallmentDate,
+            dueDay: data.dueDay !== undefined ? data.dueDay : p.dueDay,
+          };
+        })
+      );
+    },
+    []
+  );
 
-  const deletePatient = useCallback(async (id: string) => {
-    const { error } = await supabase.from('patients').delete().eq('id', id);
-    if (error) {
-      console.error('Error deleting patient:', error);
-      toast.error('Erro ao excluir paciente');
-      return;
-    }
-    setPatients((prev) => prev.filter((p) => p.id !== id));
-  }, []);
+  const togglePatientActive = useCallback(
+    async (id: string) => {
+      const patient = patients.find((p) => p.id === id);
+      if (!patient) return;
 
-  const getPatientById = useCallback((id: string) => {
-    return patients.find((p) => p.id === id);
-  }, [patients]);
+      const { error } = await supabase
+        .from("patients")
+        .update({ active: !patient.active })
+        .eq("id", id);
+      if (error) {
+        console.error("Error toggling patient:", error);
+        toast.error("Erro ao atualizar paciente");
+        return;
+      }
+
+      const newActive = !patient.active;
+      await writeAuditLog({
+        userId: user!.id,
+        userName: user!.user_metadata?.full_name ?? user!.email ?? "Usuário",
+        userEmail: user!.email ?? undefined,
+        module: "pacientes",
+        action: newActive ? "ativar" : "desativar",
+        description: `Paciente ${newActive ? "ativado" : "desativado"}: "${
+          patient.name
+        }"`,
+        entityName: patient.name,
+        entityId: id,
+      });
+
+      setPatients((prev) =>
+        prev.map((p) => (p.id === id ? { ...p, active: !p.active } : p))
+      );
+    },
+    [patients, user]
+  );
+
+  const deletePatient = useCallback(
+    async (id: string) => {
+      const patient = patients.find((p) => p.id === id);
+      const { error } = await supabase.from("patients").delete().eq("id", id);
+      if (error) {
+        console.error("Error deleting patient:", error);
+        toast.error("Erro ao excluir paciente");
+        return;
+      }
+      setPatients((prev) => prev.filter((p) => p.id !== id));
+
+      await writeAuditLog({
+        userId: user!.id,
+        userName: user!.user_metadata?.full_name ?? user!.email ?? "Usuário",
+        userEmail: user!.email ?? undefined,
+        module: "pacientes",
+        action: "excluir",
+        description: `Paciente excluído: "${patient?.name ?? id}"`,
+        entityName: patient?.name ?? undefined,
+        entityId: id,
+      });
+    },
+    [patients, user]
+  );
+
+  const getPatientById = useCallback(
+    (id: string) => {
+      return patients.find((p) => p.id === id);
+    },
+    [patients]
+  );
 
   const activePatients = patients.filter((p) => p.active);
   const inactivePatients = patients.filter((p) => !p.active);
-  
+
   const patientsByWard = {
-    feminina: activePatients.filter((p) => p.ward === 'feminina').length,
-    masculina: activePatients.filter((p) => p.ward === 'masculina').length,
+    feminina: activePatients.filter((p) => p.ward === "feminina").length,
+    masculina: activePatients.filter((p) => p.ward === "masculina").length,
   };
 
   return {

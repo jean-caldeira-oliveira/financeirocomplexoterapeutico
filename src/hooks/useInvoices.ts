@@ -7,6 +7,7 @@ import {
   InvoiceStatus,
   InvoiceType,
 } from "@/types/invoice";
+import { writeAuditLog } from "@/utils/auditLog";
 import { addMonths, differenceInDays, isBefore, startOfDay } from "date-fns";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -263,6 +264,18 @@ export function useInvoices() {
 
       const newInvoices = (inserted || []).map((row) => mapRow(row, []));
       setInvoices((prev) => [...newInvoices, ...prev]);
+
+      await writeAuditLog({
+        userId: user!.id,
+        userName: user!.user_metadata?.full_name ?? user!.email ?? "Usuário",
+        userEmail: user!.email ?? undefined,
+        module: "cobrancas",
+        action: "criar",
+        description: `${newInvoices.length} cobrança(s) gerada(s) para "${data.patientName}"`,
+        entityName: data.patientName,
+        entityId: data.patientId,
+      });
+
       return newInvoices;
     },
     [user]
@@ -328,6 +341,23 @@ export function useInvoices() {
           return updatedInv;
         })
       );
+
+      const paidAmount = payment.amount;
+      await writeAuditLog({
+        userId: user!.id,
+        userName: user!.user_metadata?.full_name ?? user!.email ?? "Usuário",
+        userEmail: user!.email ?? undefined,
+        module: "cobrancas",
+        action:
+          paidAmount >= (invoice?.amount ?? 0) ? "pagar" : "pagamento_parcial",
+        description: `Pagamento de R$${paidAmount.toFixed(
+          2
+        )} registrado para "${invoice?.patientName ?? id}" — parcela ${
+          invoice?.installmentNumber
+        }/${invoice?.totalInstallments}`,
+        entityName: invoice?.patientName ?? undefined,
+        entityId: id,
+      });
     },
     [invoices, user]
   );
@@ -397,6 +427,21 @@ export function useInvoices() {
             : inv
         )
       );
+
+      await writeAuditLog({
+        userId: user!.id,
+        userName: user!.user_metadata?.full_name ?? user!.email ?? "Usuário",
+        userEmail: user!.email ?? undefined,
+        module: "cobrancas",
+        action: "pagar",
+        description: `Cobrança marcada como paga: "${
+          invoice.patientName
+        }" — parcela ${invoice.installmentNumber}/${
+          invoice.totalInstallments
+        } (R$${remaining.toFixed(2)})`,
+        entityName: invoice.patientName,
+        entityId: id,
+      });
     },
     [invoices, user]
   );
@@ -422,55 +467,107 @@ export function useInvoices() {
             : inv
         )
       );
+
+      await writeAuditLog({
+        userId: user!.id,
+        userName: user!.user_metadata?.full_name ?? user!.email ?? "Usuário",
+        userEmail: user!.email ?? undefined,
+        module: "cobrancas",
+        action: "reverter_pagamento",
+        description: `Pagamento revertido para "${invoice.patientName}" — parcela ${invoice.installmentNumber}/${invoice.totalInstallments}`,
+        entityName: invoice.patientName,
+        entityId: id,
+      });
+    },
+    [invoices, user]
+  );
+
+  const deleteInvoice = useCallback(
+    async (id: string) => {
+      const invoice = invoices.find((inv) => inv.id === id);
+      const { error } = await supabase.from("invoices").delete().eq("id", id);
+      if (error) {
+        console.error("Error deleting invoice:", error);
+        toast.error("Erro ao excluir cobrança");
+        return;
+      }
+      setInvoices((prev) => prev.filter((inv) => inv.id !== id));
+
+      await writeAuditLog({
+        userId: user!.id,
+        userName: user!.user_metadata?.full_name ?? user!.email ?? "Usuário",
+        userEmail: user!.email ?? undefined,
+        module: "cobrancas",
+        action: "excluir",
+        description: `Cobrança excluída: "${
+          invoice?.patientName ?? id
+        }" — parcela ${invoice?.installmentNumber}/${
+          invoice?.totalInstallments
+        }`,
+        entityName: invoice?.patientName ?? undefined,
+        entityId: id,
+      });
+    },
+    [invoices, user]
+  );
+
+  const deletePatientInvoices = useCallback(
+    async (patientId: string) => {
+      const patientName = invoices.find(
+        (inv) => inv.patientId === patientId
+      )?.patientName;
+      const { error } = await supabase
+        .from("invoices")
+        .delete()
+        .eq("patient_id", patientId);
+      if (error) {
+        console.error("Error deleting patient invoices:", error);
+        toast.error("Erro ao excluir cobranças do paciente");
+        return;
+      }
+      setInvoices((prev) => prev.filter((inv) => inv.patientId !== patientId));
+
+      await writeAuditLog({
+        userId: user!.id,
+        userName: user!.user_metadata?.full_name ?? user!.email ?? "Usuário",
+        userEmail: user!.email ?? undefined,
+        module: "cobrancas",
+        action: "excluir",
+        description: `Todas as cobranças excluídas para o paciente "${
+          patientName ?? patientId
+        }"`,
+        entityName: patientName ?? undefined,
+        entityId: patientId,
+      });
+    },
+    [invoices, user]
+  );
+
+  const deleteFuturePatientInvoices = useCallback(
+    async (patientId: string): Promise<number> => {
+      const today = startOfDay(new Date());
+      const toDelete = invoices.filter((inv) => {
+        if (inv.patientId !== patientId) return false;
+        if (inv.status === "paid") return false;
+        const dueDate = startOfDay(new Date(inv.dueDate));
+        return !isBefore(dueDate, today);
+      });
+
+      if (toDelete.length === 0) return 0;
+
+      const ids = toDelete.map((inv) => inv.id);
+      const { error } = await supabase.from("invoices").delete().in("id", ids);
+      if (error) {
+        console.error("Error deleting future invoices:", error);
+        toast.error("Erro ao remover parcelas futuras");
+        return 0;
+      }
+
+      setInvoices((prev) => prev.filter((inv) => !ids.includes(inv.id)));
+      return ids.length;
     },
     [invoices]
   );
-
-  const deleteInvoice = useCallback(async (id: string) => {
-    const { error } = await supabase.from("invoices").delete().eq("id", id);
-    if (error) {
-      console.error("Error deleting invoice:", error);
-      toast.error("Erro ao excluir cobrança");
-      return;
-    }
-    setInvoices((prev) => prev.filter((inv) => inv.id !== id));
-  }, []);
-
-  const deletePatientInvoices = useCallback(async (patientId: string) => {
-    const { error } = await supabase
-      .from("invoices")
-      .delete()
-      .eq("patient_id", patientId);
-    if (error) {
-      console.error("Error deleting patient invoices:", error);
-      toast.error("Erro ao excluir cobranças do paciente");
-      return;
-    }
-    setInvoices((prev) => prev.filter((inv) => inv.patientId !== patientId));
-  }, []);
-
-  const deleteFuturePatientInvoices = useCallback(async (patientId: string): Promise<number> => {
-    const today = startOfDay(new Date());
-    const toDelete = invoices.filter((inv) => {
-      if (inv.patientId !== patientId) return false;
-      if (inv.status === "paid") return false;
-      const dueDate = startOfDay(new Date(inv.dueDate));
-      return !isBefore(dueDate, today);
-    });
-
-    if (toDelete.length === 0) return 0;
-
-    const ids = toDelete.map((inv) => inv.id);
-    const { error } = await supabase.from("invoices").delete().in("id", ids);
-    if (error) {
-      console.error("Error deleting future invoices:", error);
-      toast.error("Erro ao remover parcelas futuras");
-      return 0;
-    }
-
-    setInvoices((prev) => prev.filter((inv) => !ids.includes(inv.id)));
-    return ids.length;
-  }, [invoices]);
 
   // Delete all unpaid future invoices for a patient and regenerate based on new params.
   // Paid invoices are preserved. New installments start from the first future due date.
@@ -495,7 +592,10 @@ export function useInvoices() {
 
       if (toDelete.length > 0) {
         const ids = toDelete.map((inv) => inv.id);
-        const { error } = await supabase.from("invoices").delete().in("id", ids);
+        const { error } = await supabase
+          .from("invoices")
+          .delete()
+          .in("id", ids);
         if (error) {
           console.error("Error deleting invoices for regeneration:", error);
           toast.error("Erro ao remover cobranças antigas");
@@ -733,6 +833,22 @@ export function useInvoices() {
 
       const newInvoices = (inserted || []).map((row) => mapRow(row, []));
       setInvoices((prev) => [...newInvoices, ...prev]);
+
+      await writeAuditLog({
+        userId: user.id,
+        userName: user.user_metadata?.full_name ?? user.email ?? "Usuário",
+        userEmail: user.email ?? undefined,
+        module: "cobrancas",
+        action: "criar",
+        description: `Cobrança avulsa criada para "${
+          data.patientName
+        }": R$${data.amount.toFixed(2)}${
+          numInstallments > 1 ? ` em ${numInstallments} parcelas` : ""
+        }`,
+        entityName: data.patientName,
+        entityId: data.patientId,
+      });
+
       toast.success(
         `Cobrança avulsa criada com sucesso${
           numInstallments > 1 ? ` (${numInstallments} parcelas)` : ""

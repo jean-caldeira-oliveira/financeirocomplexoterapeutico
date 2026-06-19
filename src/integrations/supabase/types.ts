@@ -14,6 +14,45 @@ export type Database = {
   };
   public: {
     Tables: {
+      audit_log: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          user_name: string | null;
+          user_email: string | null;
+          module: string;
+          action: string;
+          description: string;
+          entity_name: string | null;
+          entity_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          user_name?: string | null;
+          user_email?: string | null;
+          module: string;
+          action: string;
+          description: string;
+          entity_name?: string | null;
+          entity_id?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string | null;
+          user_name?: string | null;
+          user_email?: string | null;
+          module?: string;
+          action?: string;
+          description?: string;
+          entity_name?: string | null;
+          entity_id?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       bill_history: {
         Row: {
           action: string;

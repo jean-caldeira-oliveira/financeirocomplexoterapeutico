@@ -17,6 +17,7 @@ const Bills = lazy(() => import("./pages/Bills"));
 const Reports = lazy(() => import("./pages/Reports"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Admin = lazy(() => import("./pages/Admin"));
+const AuditLog = lazy(() => import("./pages/AuditLog"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Shared full-screen spinner used while a lazy chunk is loading.
@@ -120,6 +121,14 @@ const App = () => (
               element={
                 <AdminRoute>
                   <Admin />
+                </AdminRoute>
+              }
+            />
+            <Route
+              path="/logs"
+              element={
+                <AdminRoute>
+                  <AuditLog />
                 </AdminRoute>
               }
             />

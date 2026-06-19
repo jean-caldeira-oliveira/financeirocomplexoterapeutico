@@ -1,8 +1,9 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { Transaction } from '@/types/transaction';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/hooks/useAuth';
-import { toast } from 'sonner';
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { Transaction } from "@/types/transaction";
+import { writeAuditLog } from "@/utils/auditLog";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 const mapRow = (row: any): Transaction => ({
   id: row.id,
@@ -22,116 +23,169 @@ export function useTransactions(selectedMonth: Date) {
   const { user } = useAuth();
 
   const fetchTransactions = useCallback(async () => {
-    if (!user) { setTransactions([]); setIsLoading(false); return; }
+    if (!user) {
+      setTransactions([]);
+      setIsLoading(false);
+      return;
+    }
     const { data, error } = await supabase
-      .from('transactions')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .from("transactions")
+      .select("*")
+      .order("created_at", { ascending: false });
 
     if (error) {
-      console.error('Error fetching transactions:', error);
-      toast.error('Erro ao carregar transações');
+      console.error("Error fetching transactions:", error);
+      toast.error("Erro ao carregar transações");
     } else {
       setTransactions((data || []).map(mapRow));
     }
     setIsLoading(false);
   }, [user]);
 
-  useEffect(() => { fetchTransactions(); }, [fetchTransactions]);
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
 
-  const addTransaction = useCallback(async (data: Omit<Transaction, 'id' | 'createdAt'>) => {
-    const row = {
-      user_id: user!.id,
-      type: data.type,
-      category: data.category,
-      description: data.description,
-      amount: data.amount,
-      date: data.date,
-      status: data.status ?? 'paid',
-      patient_id: data.patientId ?? null,
-    };
+  const addTransaction = useCallback(
+    async (data: Omit<Transaction, "id" | "createdAt">) => {
+      const row = {
+        user_id: user!.id,
+        type: data.type,
+        category: data.category,
+        description: data.description,
+        amount: data.amount,
+        date: data.date,
+        status: data.status ?? "paid",
+        patient_id: data.patientId ?? null,
+      };
 
-    const { data: inserted, error } = await supabase
-      .from('transactions')
-      .insert(row)
-      .select()
-      .single();
+      const { data: inserted, error } = await supabase
+        .from("transactions")
+        .insert(row)
+        .select()
+        .single();
 
-    if (error) {
-      console.error('Error adding transaction:', error);
-      toast.error('Erro ao adicionar transação');
-      return;
-    }
+      if (error) {
+        console.error("Error adding transaction:", error);
+        toast.error("Erro ao adicionar transação");
+        return;
+      }
 
-    setTransactions((prev) => [mapRow(inserted), ...prev]);
-  }, [user]);
+      const newTx = mapRow(inserted);
+      setTransactions((prev) => [newTx, ...prev]);
 
-  const deleteTransaction = useCallback(async (id: string) => {
-    const { error } = await supabase.from('transactions').delete().eq('id', id);
-    if (error) {
-      console.error('Error deleting transaction:', error);
-      toast.error('Erro ao excluir transação');
-      return;
-    }
-    setTransactions((prev) => prev.filter((t) => t.id !== id));
-  }, []);
+      await writeAuditLog({
+        userId: user!.id,
+        userName: user!.user_metadata?.full_name ?? user!.email ?? "Usuário",
+        userEmail: user!.email ?? undefined,
+        module: "transacoes",
+        action: "criar",
+        description: `Transação criada: "${data.description}" — ${
+          data.type === "income" ? "Entrada" : "Saída"
+        } R$${data.amount.toFixed(2)}`,
+        entityName: data.description,
+        entityId: newTx.id,
+      });
+    },
+    [user]
+  );
+
+  const deleteTransaction = useCallback(
+    async (id: string) => {
+      const tx = transactions.find((t) => t.id === id);
+      const { error } = await supabase
+        .from("transactions")
+        .delete()
+        .eq("id", id);
+      if (error) {
+        console.error("Error deleting transaction:", error);
+        toast.error("Erro ao excluir transação");
+        return;
+      }
+      setTransactions((prev) => prev.filter((t) => t.id !== id));
+
+      await writeAuditLog({
+        userId: user!.id,
+        userName: user!.user_metadata?.full_name ?? user!.email ?? "Usuário",
+        userEmail: user!.email ?? undefined,
+        module: "transacoes",
+        action: "excluir",
+        description: `Transação excluída: "${tx?.description ?? id}"`,
+        entityName: tx?.description ?? undefined,
+        entityId: id,
+      });
+    },
+    [transactions, user]
+  );
 
   // Filter transactions by selected month
   const monthTransactions = useMemo(() => {
     const year = selectedMonth.getFullYear();
     const month = selectedMonth.getMonth();
-    
-    return transactions.filter((t) => {
-      const date = new Date(t.date);
-      return date.getFullYear() === year && date.getMonth() === month;
-    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    return transactions
+      .filter((t) => {
+        const date = new Date(t.date);
+        return date.getFullYear() === year && date.getMonth() === month;
+      })
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [transactions, selectedMonth]);
 
   const stats = useMemo(() => {
-    const incomeTransactions = monthTransactions.filter((t) => t.type === 'income');
-    
+    const incomeTransactions = monthTransactions.filter(
+      (t) => t.type === "income"
+    );
+
     const paidIncome = incomeTransactions
-      .filter((t) => t.status === 'paid' || !t.status)
+      .filter((t) => t.status === "paid" || !t.status)
       .reduce((acc, t) => acc + t.amount, 0);
 
     const pendingIncome = incomeTransactions
-      .filter((t) => t.status === 'pending')
+      .filter((t) => t.status === "pending")
       .reduce((acc, t) => acc + t.amount, 0);
 
     const overdueIncome = incomeTransactions
-      .filter((t) => t.status === 'overdue')
+      .filter((t) => t.status === "overdue")
       .reduce((acc, t) => acc + t.amount, 0);
 
-    const expectedIncome = incomeTransactions.reduce((acc, t) => acc + t.amount, 0);
+    const expectedIncome = incomeTransactions.reduce(
+      (acc, t) => acc + t.amount,
+      0
+    );
     const actualIncome = paidIncome;
     const pendingTotal = pendingIncome + overdueIncome;
 
     const monthExpense = monthTransactions
-      .filter((t) => t.type === 'expense')
+      .filter((t) => t.type === "expense")
       .reduce((acc, t) => acc + t.amount, 0);
 
     const year = selectedMonth.getFullYear();
     const month = selectedMonth.getMonth();
-    
+
     const previousBalance = transactions
       .filter((t) => {
         const date = new Date(t.date);
         return date < new Date(year, month, 1);
       })
       .reduce((acc, t) => {
-        if (t.type === 'income' && (t.status === 'paid' || !t.status)) return acc + t.amount;
-        if (t.type === 'expense') return acc - t.amount;
+        if (t.type === "income" && (t.status === "paid" || !t.status))
+          return acc + t.amount;
+        if (t.type === "expense") return acc - t.amount;
         return acc;
       }, 0);
 
     const balance = previousBalance + actualIncome - monthExpense;
 
     const patientPayments = incomeTransactions.filter(
-      (t) => t.patientId && (t.status === 'paid' || !t.status)
+      (t) => t.patientId && (t.status === "paid" || !t.status)
     );
     const uniquePatients = new Set(patientPayments.map((t) => t.patientId));
-    const totalPatientPayments = patientPayments.reduce((acc, t) => acc + t.amount, 0);
-    const ticketMedio = uniquePatients.size > 0 ? totalPatientPayments / uniquePatients.size : 0;
+    const totalPatientPayments = patientPayments.reduce(
+      (acc, t) => acc + t.amount,
+      0
+    );
+    const ticketMedio =
+      uniquePatients.size > 0 ? totalPatientPayments / uniquePatients.size : 0;
 
     const prevMonth = new Date(selectedMonth);
     prevMonth.setMonth(prevMonth.getMonth() - 1);
@@ -140,19 +194,21 @@ export function useTransactions(selectedMonth: Date) {
 
     const prevMonthTransactions = transactions.filter((t) => {
       const date = new Date(t.date);
-      return date.getFullYear() === prevYear && date.getMonth() === prevMonthNum;
+      return (
+        date.getFullYear() === prevYear && date.getMonth() === prevMonthNum
+      );
     });
 
     const prevMonthIncome = prevMonthTransactions
-      .filter((t) => t.type === 'income' && (t.status === 'paid' || !t.status))
+      .filter((t) => t.type === "income" && (t.status === "paid" || !t.status))
       .reduce((acc, t) => acc + t.amount, 0);
 
     const prevMonthExpense = prevMonthTransactions
-      .filter((t) => t.type === 'expense')
+      .filter((t) => t.type === "expense")
       .reduce((acc, t) => acc + t.amount, 0);
 
     const expenseByCategory = monthTransactions
-      .filter((t) => t.type === 'expense')
+      .filter((t) => t.type === "expense")
       .reduce((acc, t) => {
         acc[t.category] = (acc[t.category] || 0) + t.amount;
         return acc;
@@ -181,11 +237,19 @@ export function useTransactions(selectedMonth: Date) {
 
     const dailyData = Array.from({ length: daysInMonth }, (_, i) => {
       const day = i + 1;
-      const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      
-      const dayTransactions = monthTransactions.filter((t) => t.date === dateStr);
-      const income = dayTransactions.filter((t) => t.type === 'income').reduce((acc, t) => acc + t.amount, 0);
-      const expense = dayTransactions.filter((t) => t.type === 'expense').reduce((acc, t) => acc + t.amount, 0);
+      const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(
+        day
+      ).padStart(2, "0")}`;
+
+      const dayTransactions = monthTransactions.filter(
+        (t) => t.date === dateStr
+      );
+      const income = dayTransactions
+        .filter((t) => t.type === "income")
+        .reduce((acc, t) => acc + t.amount, 0);
+      const expense = dayTransactions
+        .filter((t) => t.type === "expense")
+        .reduce((acc, t) => acc + t.amount, 0);
 
       return { day: String(day), income, expense };
     });

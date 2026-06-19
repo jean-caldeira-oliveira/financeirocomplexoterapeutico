@@ -30,6 +30,7 @@ import {
   FileText,
   LogOut,
   Receipt,
+  ScrollText,
   Shield,
   Target,
   TrendingDown,
@@ -573,12 +574,20 @@ const Index = () => {
               onChange={setSelectedMonth}
             />
             {isAdmin && (
-              <Link to="/admin">
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Shield className="h-4 w-4" />
-                  Admin
-                </Button>
-              </Link>
+              <>
+                <Link to="/admin">
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Shield className="h-4 w-4" />
+                    Admin
+                  </Button>
+                </Link>
+                <Link to="/logs">
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <ScrollText className="h-4 w-4" />
+                    Logs
+                  </Button>
+                </Link>
+              </>
             )}
             <Button
               variant="ghost"
