@@ -33,6 +33,7 @@ export interface WriteAuditLogParams {
 
 /**
  * Writes a single immutable audit log entry to the database.
+ * Uses app_* columns that coexist with the trigger-managed columns.
  * Errors are silently swallowed so they never break the main operation.
  */
 export async function writeAuditLog(
@@ -40,14 +41,17 @@ export async function writeAuditLog(
 ): Promise<void> {
   try {
     await supabase.from("audit_log").insert({
-      user_id: params.userId,
-      user_name: params.userName,
-      user_email: params.userEmail ?? null,
-      module: params.module,
-      action: params.action,
-      description: params.description,
-      entity_name: params.entityName ?? null,
-      entity_id: params.entityId ?? null,
+      app_user_id: params.userId,
+      app_user_name: params.userName,
+      app_user_email: params.userEmail ?? null,
+      app_module: params.module,
+      app_action: params.action,
+      app_description: params.description,
+      app_entity_name: params.entityName ?? null,
+      app_entity_id: params.entityId ?? null,
+      // table_name and operation are required by the trigger function schema
+      table_name: "app",
+      operation: params.action,
     });
   } catch (err) {
     // Never let audit log failures break the main flow

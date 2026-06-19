@@ -108,17 +108,18 @@ const AuditLog = () => {
   const filteredLogs = useMemo(() => {
     return logs.filter((log) => {
       const matchesModule =
-        moduleFilter === "todos" || log.module === moduleFilter;
+        moduleFilter === "todos" || log.appModule === moduleFilter;
       const matchesAction =
-        actionFilter === "todos" || log.action === actionFilter;
+        actionFilter === "todos" || log.appAction === actionFilter;
       const q = searchQuery.toLowerCase();
       const matchesSearch =
         !q ||
-        log.description.toLowerCase().includes(q) ||
-        (log.userName ?? "").toLowerCase().includes(q) ||
-        (log.userEmail ?? "").toLowerCase().includes(q) ||
-        (log.entityName ?? "").toLowerCase().includes(q) ||
-        (log.entityId ?? "").toLowerCase().includes(q);
+        (log.appDescription ?? "").toLowerCase().includes(q) ||
+        (log.appUserName ?? "").toLowerCase().includes(q) ||
+        (log.appUserEmail ?? "").toLowerCase().includes(q) ||
+        (log.appEntityName ?? "").toLowerCase().includes(q) ||
+        (log.appEntityId ?? "").toLowerCase().includes(q) ||
+        (log.tableName ?? "").toLowerCase().includes(q);
       return matchesModule && matchesAction && matchesSearch;
     });
   }, [logs, moduleFilter, actionFilter, searchQuery]);
@@ -322,42 +323,56 @@ const AuditLog = () => {
                       </TableCell>
                       <TableCell>
                         <div className="text-sm font-medium leading-tight">
-                          {log.userName ?? "—"}
+                          {log.appUserName ?? "—"}
                         </div>
-                        {log.userEmail && (
+                        {log.appUserEmail && (
                           <div className="text-xs text-muted-foreground truncate max-w-[120px]">
-                            {log.userEmail}
+                            {log.appUserEmail}
                           </div>
                         )}
                       </TableCell>
                       <TableCell>
                         <Badge
-                          variant={moduleVariant[log.module] ?? "outline"}
+                          variant={
+                            moduleVariant[log.appModule ?? ""] ?? "outline"
+                          }
                           className="text-xs"
                         >
-                          {moduleLabels[log.module] ?? log.module}
+                          {log.appModule
+                            ? moduleLabels[log.appModule] ?? log.appModule
+                            : log.tableName ?? "—"}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge
-                          variant={actionVariant[log.action] ?? "outline"}
+                          variant={
+                            actionVariant[log.appAction ?? ""] ?? "outline"
+                          }
                           className="text-xs"
                         >
-                          {actionLabels[log.action] ?? log.action}
+                          {log.appAction
+                            ? actionLabels[log.appAction] ?? log.appAction
+                            : log.operation ?? "—"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm">
-                        {log.description}
+                        {log.appDescription ?? log.tableName ?? "—"}
                       </TableCell>
                       <TableCell className="text-sm">
-                        {log.entityName ?? "—"}
+                        {log.appEntityName ?? "—"}
                       </TableCell>
                       <TableCell className="font-mono text-xs text-muted-foreground">
-                        {log.entityId ? (
-                          <span title={log.entityId} className="cursor-help">
-                            {log.entityId.length > 8
-                              ? `${log.entityId.slice(0, 8)}…`
-                              : log.entityId}
+                        {log.appEntityId ? (
+                          <span title={log.appEntityId} className="cursor-help">
+                            {log.appEntityId.length > 8
+                              ? `${log.appEntityId.slice(0, 8)}…`
+                              : log.appEntityId}
+                          </span>
+                        ) : log.recordId ? (
+                          <span title={log.recordId} className="cursor-help">
+                            {log.recordId.length > 8
+                              ? `${log.recordId.slice(0, 8)}…`
+                              : log.recordId}
                           </span>
                         ) : (
                           "—"
