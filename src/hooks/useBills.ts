@@ -85,19 +85,21 @@ const mapRow = (row: any, payments: BillPayment[] = []): Bill => {
   const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
   const rawStatus = row.status as BillStatus;
 
-  // If no payments in new table, respect legacy status (paid bills migrated)
-  // Exception: legacy "overdue" bills that predate the system start get pre_system
   const systemStart = new Date(2026, 4, 1);
-  const legacyPreSystem =
-    payments.length === 0 &&
-    rawStatus === "overdue" &&
-    isBefore(startOfDay(new Date(row.due_date)), systemStart);
+  const dueBeforeSystem = isBefore(startOfDay(new Date(row.due_date)), systemStart);
 
-  const status = legacyPreSystem
-    ? "pre_system"
-    : payments.length > 0
-    ? computeStatus(Number(row.amount), row.due_date, payments, rawStatus)
-    : rawStatus;
+  let status: BillStatus;
+  if (payments.length > 0) {
+    status = computeStatus(Number(row.amount), row.due_date, payments, rawStatus);
+  } else if (rawStatus === "paid") {
+    // Respect legacy paid status even without payment records
+    status = "paid";
+  } else if (dueBeforeSystem) {
+    // Any unpaid bill predating the system start becomes pre_system
+    status = "pre_system";
+  } else {
+    status = rawStatus;
+  }
 
   return {
     id: row.id,
