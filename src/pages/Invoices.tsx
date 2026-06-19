@@ -41,6 +41,7 @@ import {
 } from "@/types/invoice";
 import { format, isSameMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Input } from "@/components/ui/input";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -53,6 +54,7 @@ import {
   MessageCircle,
   Plus,
   Receipt,
+  Search,
   Star,
   Undo2,
   X,
@@ -85,6 +87,7 @@ const Invoices = () => {
       return next;
     });
   };
+  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [typeFilters, setTypeFilters] = useState<string[]>([]);
 
@@ -122,6 +125,7 @@ const Invoices = () => {
 
   const filteredInvoices = useMemo(() => {
     const [year, month] = selectedMonth.split("-").map(Number);
+    const query = searchQuery.toLowerCase().trim();
 
     return invoices
       .filter((invoice) => {
@@ -132,7 +136,9 @@ const Invoices = () => {
           statusFilters.length === 0 || statusFilters.includes(invoice.status);
         const typeMatch =
           typeFilters.length === 0 || typeFilters.includes(invoice.type);
-        return monthMatch && statusMatch && typeMatch;
+        const searchMatch =
+          query === "" || invoice.patientName.toLowerCase().includes(query);
+        return monthMatch && statusMatch && typeMatch && searchMatch;
       })
       .sort(
         (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
@@ -256,7 +262,16 @@ const Invoices = () => {
 
         {/* Filters */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar paciente..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 w-[200px]"
+              />
+            </div>
             <Filter className="h-4 w-4 text-muted-foreground" />
             <Select value={selectedMonth} onValueChange={setSelectedMonth}>
               <SelectTrigger className="w-[180px]">

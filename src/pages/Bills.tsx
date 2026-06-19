@@ -54,6 +54,7 @@ import {
 } from "@/types/bill";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Input } from "@/components/ui/input";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -63,6 +64,7 @@ import {
   FileText,
   Filter,
   RefreshCw,
+  Search,
   Trash2,
   Undo2,
   Wallet,
@@ -87,6 +89,7 @@ const Bills = () => {
   } = useBills();
   const { allGroupLabels, allSubcategoryLabels, allGroupSubcategories } =
     useCustomCategories();
+  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [categoryFilters, setCategoryFilters] = useState<string[]>([]);
   const [subcategoryFilters, setSubcategoryFilters] = useState<string[]>([]);
@@ -131,6 +134,7 @@ const Bills = () => {
     const [year, month] = selectedMonth.split("-").map(Number);
     // month is now 1-based; getMonth() is 0-based → compare with month-1
     const monthIndex = month - 1;
+    const query = searchQuery.toLowerCase().trim();
 
     return bills
       .filter((bill) => {
@@ -145,7 +149,9 @@ const Bills = () => {
         const subcategoryMatch =
           subcategoryFilters.length === 0 ||
           subcategoryFilters.includes(bill.subcategory);
-        return monthMatch && statusMatch && categoryMatch && subcategoryMatch;
+        const searchMatch =
+          query === "" || bill.description.toLowerCase().includes(query);
+        return monthMatch && statusMatch && categoryMatch && subcategoryMatch && searchMatch;
       })
       .sort(
         (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
@@ -312,6 +318,15 @@ const Bills = () => {
         {/* Filters */}
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3">
+            <div className="relative">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar descrição..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8 w-[200px]"
+              />
+            </div>
             <Filter className="h-4 w-4 text-muted-foreground" />
             <Select value={selectedMonth} onValueChange={setSelectedMonth}>
               <SelectTrigger className="w-[180px]">
