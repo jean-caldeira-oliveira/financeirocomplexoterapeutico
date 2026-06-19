@@ -143,7 +143,7 @@ const Invoices = () => {
       .sort(
         (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
       );
-  }, [invoices, selectedMonth, statusFilters, typeFilters]);
+  }, [invoices, selectedMonth, searchQuery, statusFilters, typeFilters]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {

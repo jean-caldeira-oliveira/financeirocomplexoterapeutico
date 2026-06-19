@@ -159,6 +159,7 @@ const Bills = () => {
   }, [
     bills,
     selectedMonth,
+    searchQuery,
     statusFilters,
     categoryFilters,
     subcategoryFilters,
