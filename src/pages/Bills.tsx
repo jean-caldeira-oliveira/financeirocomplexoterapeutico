@@ -96,8 +96,9 @@ const Bills = () => {
   const [detailsOpen, setDetailsOpen] = useState(false);
 
   const currentDate = new Date();
+  // Use 1-based month (getMonth()+1) so "2026-06" = June 2026, matching human-readable months
   const [selectedMonth, setSelectedMonth] = useState(
-    `${currentDate.getFullYear()}-${String(currentDate.getMonth()).padStart(
+    `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(
       2,
       "0"
     )}`
@@ -115,7 +116,8 @@ const Bills = () => {
         1
       );
       options.push({
-        value: `${date.getFullYear()}-${String(date.getMonth()).padStart(
+        // getMonth()+1 → 1-based month so value matches the displayed label
+        value: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
           2,
           "0"
         )}`,
@@ -127,12 +129,14 @@ const Bills = () => {
 
   const filteredBills = useMemo(() => {
     const [year, month] = selectedMonth.split("-").map(Number);
+    // month is now 1-based; getMonth() is 0-based → compare with month-1
+    const monthIndex = month - 1;
 
     return bills
       .filter((bill) => {
         const dueDate = new Date(bill.dueDate);
         const monthMatch =
-          dueDate.getFullYear() === year && dueDate.getMonth() === month;
+          dueDate.getFullYear() === year && dueDate.getMonth() === monthIndex;
         const statusMatch =
           statusFilters.length === 0 || statusFilters.includes(bill.status);
         const categoryMatch =
