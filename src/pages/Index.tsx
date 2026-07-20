@@ -7,6 +7,7 @@ import {
   DisplayTransaction,
   TransactionList,
 } from "@/components/TransactionList";
+import { WardForecast } from "@/components/WardForecast";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useBills } from "@/hooks/useBills";
@@ -754,6 +755,25 @@ const Index = () => {
                 onDateRangeChange={setExpenseDateRange}
               />
             </Suspense>
+          </div>
+        </div>
+
+        {/* Ward Forecast */}
+        <div className="mb-8">
+          <div className="rounded-xl border border-border bg-card p-6 shadow-sm animate-slide-up">
+            <div className="mb-4 flex items-center gap-2">
+              <Target className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-semibold">Previsão por Ala</h2>
+              <span className="ml-auto text-xs text-muted-foreground">
+                Próximo mês e próximos 3 meses
+              </span>
+            </div>
+            <WardForecast
+              invoices={invoices}
+              bills={bills}
+              patients={patients}
+              getBillsByMonth={getBillsByMonth}
+            />
           </div>
         </div>
 
