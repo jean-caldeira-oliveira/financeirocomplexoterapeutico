@@ -300,6 +300,7 @@ const Index = () => {
         currentRate,
         nextMonthRate,
         rate3Months,
+        freeSpotsCurrent: Math.max(capacity - current, 0),
         freeSpotsNextMonth: Math.max(capacity - projectedNextMonth, 0),
         freeRateNextMonth: Math.max(100 - nextMonthRate, 0),
         freeSpots3Months,
@@ -882,6 +883,24 @@ const Index = () => {
               </p>
             </div>
 
+            <div className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                Potencial de faturamento adicional
+              </p>
+              <div className="mt-0.5 flex items-baseline gap-1">
+                <span className="text-sm font-bold text-amber-600 dark:text-amber-400">
+                  {formatCurrency(
+                    wardOccupancy.feminina.freeSpotsCurrent *
+                      aggregatedStats.ticketMedio
+                  )}
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  /mês com ocupação 100% ({wardOccupancy.feminina.freeSpotsCurrent}{" "}
+                  vagas vazias × ticket médio)
+                </span>
+              </div>
+            </div>
+
             <div className="absolute -bottom-4 -right-4 h-24 w-24 rounded-full opacity-10 blur-2xl" />
           </div>
 
@@ -990,6 +1009,24 @@ const Index = () => {
                 </span>{" "}
                 internações/semana p/ manter ocupação
               </p>
+            </div>
+
+            <div className="mt-3 rounded-lg border border-amber-500/20 bg-amber-500/10 px-3 py-2">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-amber-600 dark:text-amber-400">
+                Potencial de faturamento adicional
+              </p>
+              <div className="mt-0.5 flex items-baseline gap-1">
+                <span className="text-sm font-bold text-amber-600 dark:text-amber-400">
+                  {formatCurrency(
+                    wardOccupancy.masculina.freeSpotsCurrent *
+                      aggregatedStats.ticketMedio
+                  )}
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  /mês com ocupação 100% ({wardOccupancy.masculina.freeSpotsCurrent}{" "}
+                  vagas vazias × ticket médio)
+                </span>
+              </div>
             </div>
 
             <div className="absolute -bottom-4 -right-4 h-24 w-24 rounded-full opacity-10 blur-2xl" />
