@@ -7,7 +7,10 @@ import {
   DisplayTransaction,
   TransactionList,
 } from "@/components/TransactionList";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { useBills } from "@/hooks/useBills";
 import { useInvoices } from "@/hooks/useInvoices";
@@ -221,9 +224,9 @@ const Index = () => {
       feminina: { nextMonth: 0, next3Months: 0 },
       masculina: { nextMonth: 0, next3Months: 0 },
     };
-    const patientMap: Record<string, string> = {};
+    const patientMap: Record<string, { name: string; ward: string }> = {};
     patients.forEach((p) => {
-      patientMap[p.id] = p.ward;
+      patientMap[p.id] = { name: p.name, ward: p.ward };
     });
 
     // Find each patient's last monthly installment due date
@@ -257,16 +260,41 @@ const Index = () => {
       999
     );
 
+    const retentionList: {
+      nextMonth: { patientId: string; name: string; ward: string; dueDate: Date }[];
+      next3Months: { patientId: string; name: string; ward: string; dueDate: Date }[];
+    } = { nextMonth: [], next3Months: [] };
+
     for (const [patientId, { dueDate }] of Object.entries(
       lastInstallmentByPatient
     )) {
-      const ward = patientMap[patientId] as "feminina" | "masculina";
+      const patient = patientMap[patientId];
+      const ward = patient?.ward as "feminina" | "masculina";
       if (!ward || !(ward in counts)) continue;
       if (dueDate < today) continue;
-      if (dueDate <= endOfNextMonth) counts[ward].nextMonth++;
-      if (dueDate <= endOfThirdMonth) counts[ward].next3Months++;
+      if (dueDate <= endOfNextMonth) {
+        counts[ward].nextMonth++;
+        retentionList.nextMonth.push({
+          patientId,
+          name: patient.name,
+          ward,
+          dueDate,
+        });
+      }
+      if (dueDate <= endOfThirdMonth) {
+        counts[ward].next3Months++;
+        retentionList.next3Months.push({
+          patientId,
+          name: patient.name,
+          ward,
+          dueDate,
+        });
+      }
     }
-    return counts;
+    retentionList.nextMonth.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+    retentionList.next3Months.sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+
+    return { ...counts, retentionList };
   }, [invoices, patients]);
 
   const WARD_CAPACITY = { feminina: 30, masculina: 60 } as const;
@@ -775,7 +803,7 @@ const Index = () => {
         </div>
 
         {/* Patient Stats */}
-        <div className="mb-8 grid gap-4 md:grid-cols-2">
+        <div className="mb-8 grid gap-4 lg:grid-cols-[1fr_1fr_1fr]">
           {/* Ala Feminina */}
           <div className="relative overflow-hidden rounded-xl p-6 card-hover animate-fade-in bg-card border border-border shadow-sm">
             <div className="flex items-start justify-between">
@@ -1030,6 +1058,98 @@ const Index = () => {
             </div>
 
             <div className="absolute -bottom-4 -right-4 h-24 w-24 rounded-full opacity-10 blur-2xl" />
+          </div>
+
+          {/* Possibilidade de Retenção */}
+          <div className="relative overflow-hidden rounded-xl p-6 card-hover animate-fade-in bg-card border border-border shadow-sm">
+            <p className="text-sm font-medium text-muted-foreground">
+              Possibilidade de retenção
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Pacientes que podem ter seu contrato renovado ou ambulatorial
+              oferecido
+            </p>
+
+            <Tabs defaultValue="nextMonth" className="mt-3">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="nextMonth">
+                  Próx. mês ({wardLeavingForecast.retentionList.nextMonth.length})
+                </TabsTrigger>
+                <TabsTrigger value="next3Months">
+                  3 meses ({wardLeavingForecast.retentionList.next3Months.length})
+                </TabsTrigger>
+              </TabsList>
+              <TabsContent value="nextMonth">
+                <ScrollArea className="h-64 pr-2">
+                  {wardLeavingForecast.retentionList.nextMonth.length === 0 ? (
+                    <p className="py-4 text-center text-xs text-muted-foreground">
+                      Nenhum contrato vencendo no próximo mês
+                    </p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {wardLeavingForecast.retentionList.nextMonth.map((p) => (
+                        <div
+                          key={p.patientId}
+                          className="flex items-center justify-between gap-2 rounded-lg bg-muted/50 px-2.5 py-1.5"
+                        >
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            <Badge
+                              variant="outline"
+                              className={
+                                p.ward === "feminina"
+                                  ? "shrink-0 border-pink-500/30 text-pink-600 dark:text-pink-400"
+                                  : "shrink-0 border-blue-500/30 text-blue-600 dark:text-blue-400"
+                              }
+                            >
+                              {p.ward === "feminina" ? "Fem" : "Masc"}
+                            </Badge>
+                            <span className="truncate text-sm">{p.name}</span>
+                          </div>
+                          <span className="shrink-0 text-[11px] text-muted-foreground">
+                            {format(p.dueDate, "dd/MM")}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
+              </TabsContent>
+              <TabsContent value="next3Months">
+                <ScrollArea className="h-64 pr-2">
+                  {wardLeavingForecast.retentionList.next3Months.length === 0 ? (
+                    <p className="py-4 text-center text-xs text-muted-foreground">
+                      Nenhum contrato vencendo nos próximos 3 meses
+                    </p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {wardLeavingForecast.retentionList.next3Months.map((p) => (
+                        <div
+                          key={p.patientId}
+                          className="flex items-center justify-between gap-2 rounded-lg bg-muted/50 px-2.5 py-1.5"
+                        >
+                          <div className="flex items-center gap-2 overflow-hidden">
+                            <Badge
+                              variant="outline"
+                              className={
+                                p.ward === "feminina"
+                                  ? "shrink-0 border-pink-500/30 text-pink-600 dark:text-pink-400"
+                                  : "shrink-0 border-blue-500/30 text-blue-600 dark:text-blue-400"
+                              }
+                            >
+                              {p.ward === "feminina" ? "Fem" : "Masc"}
+                            </Badge>
+                            <span className="truncate text-sm">{p.name}</span>
+                          </div>
+                          <span className="shrink-0 text-[11px] text-muted-foreground">
+                            {format(p.dueDate, "dd/MM")}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </ScrollArea>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
 
