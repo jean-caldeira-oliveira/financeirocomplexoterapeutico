@@ -236,16 +236,35 @@ const Index = () => {
       };
     }
 
+    // "Próx. mês": de hoje até o fim do mês calendário seguinte
+    const endOfNextMonth = new Date(
+      today.getFullYear(),
+      today.getMonth() + 2,
+      0,
+      23,
+      59,
+      59,
+      999
+    );
+    // "3 meses": de hoje até o fim do 3º mês calendário seguinte
+    const endOfThirdMonth = new Date(
+      today.getFullYear(),
+      today.getMonth() + 4,
+      0,
+      23,
+      59,
+      59,
+      999
+    );
+
     for (const [patientId, { dueDate }] of Object.entries(
       lastInstallmentByPatient
     )) {
       const ward = patientMap[patientId] as "feminina" | "masculina";
       if (!ward || !(ward in counts)) continue;
-      const monthsAhead =
-        (dueDate.getFullYear() - today.getFullYear()) * 12 +
-        (dueDate.getMonth() - today.getMonth());
-      if (monthsAhead === 1) counts[ward].nextMonth++;
-      if (monthsAhead >= 1 && monthsAhead <= 3) counts[ward].next3Months++;
+      if (dueDate < today) continue;
+      if (dueDate <= endOfNextMonth) counts[ward].nextMonth++;
+      if (dueDate <= endOfThirdMonth) counts[ward].next3Months++;
     }
     return counts;
   }, [invoices, patients]);
@@ -692,17 +711,33 @@ const Index = () => {
                 <p className="text-2xl font-bold tracking-tight">
                   {patientsByWard.feminina}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  Estimativa: Saem próx. mês:{" "}
-                  <span className="font-semibold text-orange-500">
-                    {wardLeavingForecast.feminina.nextMonth}
-                  </span>
-                  {"  ·  "}3 meses:{" "}
-                  <span className="font-semibold text-orange-400">
-                    {wardLeavingForecast.feminina.next3Months}
-                  </span>{" "}
-                  Baseado nos contratos{" "}
-                </p>
+                <div className="pt-1">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
+                    Estimativa de saída
+                  </p>
+                  <div className="mt-1 flex items-center gap-3">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-sm font-semibold text-orange-500">
+                        {wardLeavingForecast.feminina.nextMonth}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">
+                        próx. mês
+                      </span>
+                    </div>
+                    <div className="h-3 w-px bg-border" />
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-sm font-semibold text-orange-400">
+                        {wardLeavingForecast.feminina.next3Months}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">
+                        em 3 meses
+                      </span>
+                    </div>
+                  </div>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground/60">
+                    Baseado nos contratos
+                  </p>
+                </div>
               </div>
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                 <Users className="h-6 w-6" />
@@ -721,17 +756,33 @@ const Index = () => {
                 <p className="text-2xl font-bold tracking-tight">
                   {patientsByWard.masculina}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  Estimativa: Saem próx. mês:{" "}
-                  <span className="font-semibold text-orange-500">
-                    {wardLeavingForecast.masculina.nextMonth}
-                  </span>
-                  {"  ·  "}3 meses:{" "}
-                  <span className="font-semibold text-orange-400">
-                    {wardLeavingForecast.masculina.next3Months}
-                  </span>{" "}
-                  Baseado nos contratos{" "}
-                </p>
+                <div className="pt-1">
+                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
+                    Estimativa de saída
+                  </p>
+                  <div className="mt-1 flex items-center gap-3">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-sm font-semibold text-orange-500">
+                        {wardLeavingForecast.masculina.nextMonth}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">
+                        próx. mês
+                      </span>
+                    </div>
+                    <div className="h-3 w-px bg-border" />
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-sm font-semibold text-orange-400">
+                        {wardLeavingForecast.masculina.next3Months}
+                      </span>
+                      <span className="text-[11px] text-muted-foreground">
+                        em 3 meses
+                      </span>
+                    </div>
+                  </div>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground/60">
+                    Baseado nos contratos
+                  </p>
+                </div>
               </div>
               <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                 <Users className="h-6 w-6" />
