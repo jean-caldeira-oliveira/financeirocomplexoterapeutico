@@ -7,7 +7,6 @@ import {
   DisplayTransaction,
   TransactionList,
 } from "@/components/TransactionList";
-import { WardForecast } from "@/components/WardForecast";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { useBills } from "@/hooks/useBills";
@@ -214,6 +213,42 @@ const Index = () => {
     getInvoiceIncomeByDateRange,
     getInvoiceExpectedIncomeByDateRange,
   } = useInvoices();
+
+  // Forecast: patients whose last monthly installment falls in next 1 or 3 months
+  const wardLeavingForecast = useMemo(() => {
+    const today = new Date();
+    const counts = {
+      feminina: { nextMonth: 0, next3Months: 0 },
+      masculina: { nextMonth: 0, next3Months: 0 },
+    };
+    const patientMap: Record<string, string> = {};
+    patients.forEach((p) => {
+      patientMap[p.id] = p.ward;
+    });
+
+    // Find each patient's last monthly installment due date
+    const lastInstallmentByPatient: Record<string, { dueDate: Date }> = {};
+    for (const inv of invoices) {
+      if (inv.type !== "monthly") continue;
+      if (inv.installmentNumber !== inv.totalInstallments) continue;
+      lastInstallmentByPatient[inv.patientId] = {
+        dueDate: new Date(inv.dueDate),
+      };
+    }
+
+    for (const [patientId, { dueDate }] of Object.entries(
+      lastInstallmentByPatient
+    )) {
+      const ward = patientMap[patientId] as "feminina" | "masculina";
+      if (!ward || !(ward in counts)) continue;
+      const monthsAhead =
+        (dueDate.getFullYear() - today.getFullYear()) * 12 +
+        (dueDate.getMonth() - today.getMonth());
+      if (monthsAhead === 1) counts[ward].nextMonth++;
+      if (monthsAhead >= 1 && monthsAhead <= 3) counts[ward].next3Months++;
+    }
+    return counts;
+  }, [invoices, patients]);
   const {
     bills,
     addBill,
@@ -647,18 +682,63 @@ const Index = () => {
 
         {/* Patient Stats + Balance */}
         <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <StatCard
-            title="Pacientes Ala Feminina"
-            value={patientsByWard.feminina.toString()}
-            icon={<Users className="h-6 w-6" />}
-            variant="default"
-          />
-          <StatCard
-            title="Pacientes Ala Masculina"
-            value={patientsByWard.masculina.toString()}
-            icon={<Users className="h-6 w-6" />}
-            variant="default"
-          />
+          {/* Ala Feminina */}
+          <div className="relative overflow-hidden rounded-xl p-6 card-hover animate-fade-in bg-card border border-border shadow-sm">
+            <div className="flex items-start justify-between">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Pacientes Ala Feminina
+                </p>
+                <p className="text-2xl font-bold tracking-tight">
+                  {patientsByWard.feminina}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Estimativa: Saem próx. mês:{" "}
+                  <span className="font-semibold text-orange-500">
+                    {wardLeavingForecast.feminina.nextMonth}
+                  </span>
+                  {"  ·  "}3 meses:{" "}
+                  <span className="font-semibold text-orange-400">
+                    {wardLeavingForecast.feminina.next3Months}
+                  </span>{" "}
+                  Baseado nos contratos{" "}
+                </p>
+              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                <Users className="h-6 w-6" />
+              </div>
+            </div>
+            <div className="absolute -bottom-4 -right-4 h-24 w-24 rounded-full opacity-10 blur-2xl" />
+          </div>
+
+          {/* Ala Masculina */}
+          <div className="relative overflow-hidden rounded-xl p-6 card-hover animate-fade-in bg-card border border-border shadow-sm">
+            <div className="flex items-start justify-between">
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-muted-foreground">
+                  Pacientes Ala Masculina
+                </p>
+                <p className="text-2xl font-bold tracking-tight">
+                  {patientsByWard.masculina}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Estimativa: Saem próx. mês:{" "}
+                  <span className="font-semibold text-orange-500">
+                    {wardLeavingForecast.masculina.nextMonth}
+                  </span>
+                  {"  ·  "}3 meses:{" "}
+                  <span className="font-semibold text-orange-400">
+                    {wardLeavingForecast.masculina.next3Months}
+                  </span>{" "}
+                  Baseado nos contratos{" "}
+                </p>
+              </div>
+              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                <Users className="h-6 w-6" />
+              </div>
+            </div>
+            <div className="absolute -bottom-4 -right-4 h-24 w-24 rounded-full opacity-10 blur-2xl" />
+          </div>
           <StatCard
             title="Saídas"
             value={formatCurrency(aggregatedStats.monthExpense)}
@@ -755,25 +835,6 @@ const Index = () => {
                 onDateRangeChange={setExpenseDateRange}
               />
             </Suspense>
-          </div>
-        </div>
-
-        {/* Ward Forecast */}
-        <div className="mb-8">
-          <div className="rounded-xl border border-border bg-card p-6 shadow-sm animate-slide-up">
-            <div className="mb-4 flex items-center gap-2">
-              <Target className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-semibold">Previsão por Ala</h2>
-              <span className="ml-auto text-xs text-muted-foreground">
-                Próximo mês e próximos 3 meses
-              </span>
-            </div>
-            <WardForecast
-              invoices={invoices}
-              bills={bills}
-              patients={patients}
-              getBillsByMonth={getBillsByMonth}
-            />
           </div>
         </div>
 
