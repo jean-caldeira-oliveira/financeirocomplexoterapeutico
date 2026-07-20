@@ -741,8 +741,40 @@ const Index = () => {
           />
         </div>
 
-        {/* Patient Stats + Balance */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        {/* Balance Row */}
+        <div className="mb-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <StatCard
+            title="Saídas"
+            value={formatCurrency(aggregatedStats.monthExpense)}
+            icon={<TrendingDown className="h-6 w-6" />}
+            variant="expense"
+            trend={
+              aggregatedStats.prevMonthExpense > 0
+                ? `Mês anterior: ${formatCurrency(
+                    aggregatedStats.prevMonthExpense
+                  )}`
+                : undefined
+            }
+          />
+          <StatCard
+            title="Saldo Anterior"
+            value={formatCurrency(aggregatedStats.previousBalance)}
+            icon={<Wallet className="h-6 w-6" />}
+            variant={
+              aggregatedStats.previousBalance >= 0 ? "balance" : "expense"
+            }
+          />
+          <StatCard
+            title="Fechamento de Caixa"
+            value={formatCurrency(aggregatedStats.balance)}
+            icon={<DollarSign className="h-6 w-6" />}
+            variant={aggregatedStats.balance >= 0 ? "income" : "expense"}
+            trend={`Anterior + Entradas - Saídas`}
+          />
+        </div>
+
+        {/* Patient Stats */}
+        <div className="mb-8 grid gap-4 md:grid-cols-2">
           {/* Ala Feminina */}
           <div className="relative overflow-hidden rounded-xl p-6 card-hover animate-fade-in bg-card border border-border shadow-sm">
             <div className="flex items-start justify-between">
@@ -962,34 +994,6 @@ const Index = () => {
 
             <div className="absolute -bottom-4 -right-4 h-24 w-24 rounded-full opacity-10 blur-2xl" />
           </div>
-          <StatCard
-            title="Saídas"
-            value={formatCurrency(aggregatedStats.monthExpense)}
-            icon={<TrendingDown className="h-6 w-6" />}
-            variant="expense"
-            trend={
-              aggregatedStats.prevMonthExpense > 0
-                ? `Mês anterior: ${formatCurrency(
-                    aggregatedStats.prevMonthExpense
-                  )}`
-                : undefined
-            }
-          />
-          <StatCard
-            title="Saldo Anterior"
-            value={formatCurrency(aggregatedStats.previousBalance)}
-            icon={<Wallet className="h-6 w-6" />}
-            variant={
-              aggregatedStats.previousBalance >= 0 ? "balance" : "expense"
-            }
-          />
-          <StatCard
-            title="Fechamento de Caixa"
-            value={formatCurrency(aggregatedStats.balance)}
-            icon={<DollarSign className="h-6 w-6" />}
-            variant={aggregatedStats.balance >= 0 ? "income" : "expense"}
-            trend={`Anterior + Entradas - Saídas`}
-          />
         </div>
 
         {/* Monthly Comparison Chart — lazy-loaded so recharts doesn't block FCP */}
