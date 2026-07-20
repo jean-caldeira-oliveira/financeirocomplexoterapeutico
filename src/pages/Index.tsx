@@ -268,6 +268,34 @@ const Index = () => {
     }
     return counts;
   }, [invoices, patients]);
+
+  const WARD_CAPACITY = { feminina: 30, masculina: 60 } as const;
+
+  const wardOccupancy = useMemo(() => {
+    const build = (ward: "feminina" | "masculina") => {
+      const capacity = WARD_CAPACITY[ward];
+      const current = patientsByWard[ward];
+      const projectedNextMonth = current - wardLeavingForecast[ward].nextMonth;
+      const projected3Months = current - wardLeavingForecast[ward].next3Months;
+
+      const currentRate = (current / capacity) * 100;
+      const nextMonthRate = (projectedNextMonth / capacity) * 100;
+      const rate3Months = (projected3Months / capacity) * 100;
+
+      return {
+        capacity,
+        currentRate,
+        nextMonthRate,
+        rate3Months,
+        freeSpotsNextMonth: Math.max(capacity - projectedNextMonth, 0),
+        freeRateNextMonth: Math.max(100 - nextMonthRate, 0),
+        freeSpots3Months: Math.max(capacity - projected3Months, 0),
+        freeRate3Months: Math.max(100 - rate3Months, 0),
+      };
+    };
+    return { feminina: build("feminina"), masculina: build("masculina") };
+  }, [patientsByWard, wardLeavingForecast]);
+
   const {
     bills,
     addBill,
@@ -708,34 +736,12 @@ const Index = () => {
                 <p className="text-sm font-medium text-muted-foreground">
                   Pacientes Ala Feminina
                 </p>
-                <p className="text-2xl font-bold tracking-tight">
-                  {patientsByWard.feminina}
-                </p>
-                <div className="pt-1">
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
-                    Estimativa de saída
+                <div className="flex items-baseline gap-1.5">
+                  <p className="text-2xl font-bold tracking-tight">
+                    {patientsByWard.feminina}
                   </p>
-                  <div className="mt-1 flex items-center gap-3">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-sm font-semibold text-orange-500">
-                        {wardLeavingForecast.feminina.nextMonth}
-                      </span>
-                      <span className="text-[11px] text-muted-foreground">
-                        próx. mês
-                      </span>
-                    </div>
-                    <div className="h-3 w-px bg-border" />
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-sm font-semibold text-orange-400">
-                        {wardLeavingForecast.feminina.next3Months}
-                      </span>
-                      <span className="text-[11px] text-muted-foreground">
-                        em 3 meses
-                      </span>
-                    </div>
-                  </div>
-                  <p className="mt-0.5 text-[10px] text-muted-foreground/60">
-                    Baseado nos contratos
+                  <p className="text-sm text-muted-foreground">
+                    / {WARD_CAPACITY.feminina} vagas
                   </p>
                 </div>
               </div>
@@ -743,6 +749,86 @@ const Index = () => {
                 <Users className="h-6 w-6" />
               </div>
             </div>
+
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <div className="rounded-lg bg-muted/50 px-2 py-1.5">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/70">
+                  Ocupação atual
+                </p>
+                <p className="text-sm font-semibold">
+                  {wardOccupancy.feminina.currentRate.toFixed(0)}%
+                </p>
+              </div>
+              <div className="rounded-lg bg-muted/50 px-2 py-1.5">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/70">
+                  Prev. próx. mês
+                </p>
+                <p className="text-sm font-semibold">
+                  {wardOccupancy.feminina.nextMonthRate.toFixed(0)}%
+                </p>
+              </div>
+              <div className="rounded-lg bg-muted/50 px-2 py-1.5">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/70">
+                  Prev. 3 meses
+                </p>
+                <p className="text-sm font-semibold">
+                  {wardOccupancy.feminina.rate3Months.toFixed(0)}%
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-2 pt-1">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
+                Estimativa de saída
+              </p>
+              <div className="mt-1 flex items-center gap-3">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-sm font-semibold text-orange-500">
+                    {wardLeavingForecast.feminina.nextMonth}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    próx. mês
+                  </span>
+                </div>
+                <div className="h-3 w-px bg-border" />
+                <div className="flex items-baseline gap-1">
+                  <span className="text-sm font-semibold text-orange-400">
+                    {wardLeavingForecast.feminina.next3Months}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    em 3 meses
+                  </span>
+                </div>
+              </div>
+              <p className="mt-0.5 text-[10px] text-muted-foreground/60">
+                Baseado nos contratos
+              </p>
+            </div>
+
+            <div className="mt-3 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                Margem livre para anunciar
+              </p>
+              <div className="mt-0.5 flex items-center gap-3">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                    {wardOccupancy.feminina.freeSpotsNextMonth}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    vagas ({wardOccupancy.feminina.freeRateNextMonth.toFixed(0)}%) próx. mês
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                  {wardOccupancy.feminina.freeSpots3Months}
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  vagas ({wardOccupancy.feminina.freeRate3Months.toFixed(0)}%) em 3 meses
+                </span>
+              </div>
+            </div>
+
             <div className="absolute -bottom-4 -right-4 h-24 w-24 rounded-full opacity-10 blur-2xl" />
           </div>
 
@@ -753,34 +839,12 @@ const Index = () => {
                 <p className="text-sm font-medium text-muted-foreground">
                   Pacientes Ala Masculina
                 </p>
-                <p className="text-2xl font-bold tracking-tight">
-                  {patientsByWard.masculina}
-                </p>
-                <div className="pt-1">
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
-                    Estimativa de saída
+                <div className="flex items-baseline gap-1.5">
+                  <p className="text-2xl font-bold tracking-tight">
+                    {patientsByWard.masculina}
                   </p>
-                  <div className="mt-1 flex items-center gap-3">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-sm font-semibold text-orange-500">
-                        {wardLeavingForecast.masculina.nextMonth}
-                      </span>
-                      <span className="text-[11px] text-muted-foreground">
-                        próx. mês
-                      </span>
-                    </div>
-                    <div className="h-3 w-px bg-border" />
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-sm font-semibold text-orange-400">
-                        {wardLeavingForecast.masculina.next3Months}
-                      </span>
-                      <span className="text-[11px] text-muted-foreground">
-                        em 3 meses
-                      </span>
-                    </div>
-                  </div>
-                  <p className="mt-0.5 text-[10px] text-muted-foreground/60">
-                    Baseado nos contratos
+                  <p className="text-sm text-muted-foreground">
+                    / {WARD_CAPACITY.masculina} vagas
                   </p>
                 </div>
               </div>
@@ -788,6 +852,86 @@ const Index = () => {
                 <Users className="h-6 w-6" />
               </div>
             </div>
+
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              <div className="rounded-lg bg-muted/50 px-2 py-1.5">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/70">
+                  Ocupação atual
+                </p>
+                <p className="text-sm font-semibold">
+                  {wardOccupancy.masculina.currentRate.toFixed(0)}%
+                </p>
+              </div>
+              <div className="rounded-lg bg-muted/50 px-2 py-1.5">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/70">
+                  Prev. próx. mês
+                </p>
+                <p className="text-sm font-semibold">
+                  {wardOccupancy.masculina.nextMonthRate.toFixed(0)}%
+                </p>
+              </div>
+              <div className="rounded-lg bg-muted/50 px-2 py-1.5">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground/70">
+                  Prev. 3 meses
+                </p>
+                <p className="text-sm font-semibold">
+                  {wardOccupancy.masculina.rate3Months.toFixed(0)}%
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-2 pt-1">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/70">
+                Estimativa de saída
+              </p>
+              <div className="mt-1 flex items-center gap-3">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-sm font-semibold text-orange-500">
+                    {wardLeavingForecast.masculina.nextMonth}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    próx. mês
+                  </span>
+                </div>
+                <div className="h-3 w-px bg-border" />
+                <div className="flex items-baseline gap-1">
+                  <span className="text-sm font-semibold text-orange-400">
+                    {wardLeavingForecast.masculina.next3Months}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    em 3 meses
+                  </span>
+                </div>
+              </div>
+              <p className="mt-0.5 text-[10px] text-muted-foreground/60">
+                Baseado nos contratos
+              </p>
+            </div>
+
+            <div className="mt-3 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2">
+              <p className="text-[10px] font-medium uppercase tracking-wide text-emerald-600 dark:text-emerald-400">
+                Margem livre para anunciar
+              </p>
+              <div className="mt-0.5 flex items-center gap-3">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                    {wardOccupancy.masculina.freeSpotsNextMonth}
+                  </span>
+                  <span className="text-[11px] text-muted-foreground">
+                    vagas ({wardOccupancy.masculina.freeRateNextMonth.toFixed(0)}%) próx. mês
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                  {wardOccupancy.masculina.freeSpots3Months}
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  vagas ({wardOccupancy.masculina.freeRate3Months.toFixed(0)}%) em 3 meses
+                </span>
+              </div>
+            </div>
+
             <div className="absolute -bottom-4 -right-4 h-24 w-24 rounded-full opacity-10 blur-2xl" />
           </div>
           <StatCard
