@@ -272,6 +272,17 @@ const Index = () => {
   const WARD_CAPACITY = { feminina: 30, masculina: 60 } as const;
 
   const wardOccupancy = useMemo(() => {
+    const today = new Date();
+    const endOfThirdMonth = new Date(
+      today.getFullYear(),
+      today.getMonth() + 4,
+      0
+    );
+    const weeksTo3Months = Math.max(
+      (endOfThirdMonth.getTime() - today.getTime()) / (7 * 24 * 60 * 60 * 1000),
+      1
+    );
+
     const build = (ward: "feminina" | "masculina") => {
       const capacity = WARD_CAPACITY[ward];
       const current = patientsByWard[ward];
@@ -282,6 +293,8 @@ const Index = () => {
       const nextMonthRate = (projectedNextMonth / capacity) * 100;
       const rate3Months = (projected3Months / capacity) * 100;
 
+      const freeSpots3Months = Math.max(capacity - projected3Months, 0);
+
       return {
         capacity,
         currentRate,
@@ -289,8 +302,9 @@ const Index = () => {
         rate3Months,
         freeSpotsNextMonth: Math.max(capacity - projectedNextMonth, 0),
         freeRateNextMonth: Math.max(100 - nextMonthRate, 0),
-        freeSpots3Months: Math.max(capacity - projected3Months, 0),
+        freeSpots3Months,
         freeRate3Months: Math.max(100 - rate3Months, 0),
+        admissionsPerWeekNeeded: freeSpots3Months / weeksTo3Months,
       };
     };
     return { feminina: build("feminina"), masculina: build("masculina") };
@@ -827,6 +841,13 @@ const Index = () => {
                   vagas ({wardOccupancy.feminina.freeRate3Months.toFixed(0)}%) em 3 meses
                 </span>
               </div>
+              <p className="mt-1.5 border-t border-emerald-500/20 pt-1.5 text-[11px] text-muted-foreground">
+                Meta:{" "}
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                  {wardOccupancy.feminina.admissionsPerWeekNeeded.toFixed(1)}
+                </span>{" "}
+                internações/semana p/ manter ocupação
+              </p>
             </div>
 
             <div className="absolute -bottom-4 -right-4 h-24 w-24 rounded-full opacity-10 blur-2xl" />
@@ -930,6 +951,13 @@ const Index = () => {
                   vagas ({wardOccupancy.masculina.freeRate3Months.toFixed(0)}%) em 3 meses
                 </span>
               </div>
+              <p className="mt-1.5 border-t border-emerald-500/20 pt-1.5 text-[11px] text-muted-foreground">
+                Meta:{" "}
+                <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                  {wardOccupancy.masculina.admissionsPerWeekNeeded.toFixed(1)}
+                </span>{" "}
+                internações/semana p/ manter ocupação
+              </p>
             </div>
 
             <div className="absolute -bottom-4 -right-4 h-24 w-24 rounded-full opacity-10 blur-2xl" />
