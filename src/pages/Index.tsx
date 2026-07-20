@@ -297,7 +297,7 @@ const Index = () => {
     return { ...counts, retentionList };
   }, [invoices, patients]);
 
-  const WARD_CAPACITY = { feminina: 30, masculina: 60 } as const;
+  const WARD_CAPACITY = { feminina: 21, masculina: 60 } as const;
 
   const wardOccupancy = useMemo(() => {
     const today = new Date();
