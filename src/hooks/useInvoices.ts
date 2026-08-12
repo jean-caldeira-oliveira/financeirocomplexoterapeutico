@@ -8,7 +8,13 @@ import {
   InvoiceType,
 } from "@/types/invoice";
 import { writeAuditLog } from "@/utils/auditLog";
-import { addMonths, differenceInDays, isBefore, startOfDay } from "date-fns";
+import {
+  addMonths,
+  differenceInDays,
+  isBefore,
+  setDate,
+  startOfDay,
+} from "date-fns";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -27,6 +33,19 @@ export interface GenerateInvoicesData {
   hasEnrollmentFee?: boolean;
   enrollmentFee?: number;
   enrollmentDueDate?: Date;
+  interestRateMonthly?: number;
+  fineRate?: number;
+  gracePeriodDays?: number;
+}
+
+export interface GenerateExtensionInvoicesData {
+  patientId: string;
+  patientName: string;
+  monthlyFee: number;
+  dueDay: number;
+  currentTotalInstallments: number; // the NEW total (e.g. 12 after extension)
+  additionalMonths: number; // how many months were added (e.g. 3)
+  lastInvoiceDueDate: Date; // due date of the last existing invoice
   interestRateMonthly?: number;
   fineRate?: number;
   gracePeriodDays?: number;
@@ -763,6 +782,82 @@ export function useInvoices() {
     [user, invoices]
   );
 
+  const generateExtensionInvoices = useCallback(
+    async (data: GenerateExtensionInvoicesData): Promise<void> => {
+      if (!user) return;
+
+      const {
+        patientId,
+        patientName,
+        monthlyFee,
+        dueDay,
+        currentTotalInstallments,
+        additionalMonths,
+        lastInvoiceDueDate,
+        interestRateMonthly,
+        fineRate,
+        gracePeriodDays,
+      } = data;
+
+      const firstNewInstallment =
+        currentTotalInstallments - additionalMonths + 1;
+      const rows: any[] = [];
+
+      for (let n = 1; n <= additionalMonths; n++) {
+        const baseDate = addMonths(lastInvoiceDueDate, n);
+        const year = baseDate.getFullYear();
+        const month = baseDate.getMonth();
+        const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+        const clampedDay = Math.min(dueDay, lastDayOfMonth);
+        const dueDate = setDate(new Date(year, month, 1), clampedDay);
+        const installmentNumber = firstNewInstallment + (n - 1);
+
+        rows.push({
+          patient_id: patientId,
+          patient_name: patientName,
+          amount: monthlyFee,
+          due_date: dueDate.toISOString(),
+          installment_number: installmentNumber,
+          total_installments: currentTotalInstallments,
+          status: "pending",
+          type: "monthly",
+          description: `Extensão de contrato — Parcela ${installmentNumber}/${currentTotalInstallments} (+${additionalMonths} meses adicionais)`,
+          interest_rate_monthly:
+            interestRateMonthly ?? DEFAULT_INTEREST_RATE_MONTHLY,
+          fine_rate: fineRate ?? DEFAULT_FINE_RATE,
+          grace_period_days: gracePeriodDays ?? 0,
+          billing_method: "monthly",
+          user_id: user!.id,
+        });
+      }
+
+      const { error: insertError } = await supabase
+        .from("invoices")
+        .insert(rows);
+
+      if (insertError) {
+        console.error("Error generating extension invoices:", insertError);
+        toast.error("Erro ao gerar parcelas de extensão");
+        throw insertError;
+      }
+
+      // Update all existing invoices for this patient that still show the old total
+      const oldTotal = currentTotalInstallments - additionalMonths;
+      await supabase
+        .from("invoices")
+        .update({ total_installments: currentTotalInstallments })
+        .eq("patient_id", patientId)
+        .eq("total_installments", oldTotal);
+
+      await fetchInvoices();
+
+      toast.success(
+        `${additionalMonths} parcelas de extensão geradas com sucesso`
+      );
+    },
+    [user, fetchInvoices]
+  );
+
   const updatePendingInvoiceAmounts = useCallback(
     async (patientId: string, newAmount: number): Promise<number> => {
       const today = startOfDay(new Date());
@@ -1027,5 +1122,6 @@ export function useInvoices() {
     updatePendingInvoiceAmounts,
     getInvoiceIncomeByDateRange,
     getInvoiceExpectedIncomeByDateRange,
+    generateExtensionInvoices,
   };
 }

@@ -40,6 +40,8 @@ const mapRow = (row: any): Patient => ({
   interestRateMonthly: Number(row.interest_rate_monthly),
   active: row.active,
   createdAt: row.created_at,
+  originalInstallments: row.original_installments ?? undefined,
+  extensionMonths: Number(row.extension_months ?? 0),
 });
 
 export function usePatients() {
@@ -91,6 +93,8 @@ export function usePatients() {
         referral_source: data.referralSource,
         interest_rate_monthly: 1, // 1% ao mês (padrão do sistema)
         active: true,
+        original_installments: data.installments,
+        extension_months: 0,
       };
 
       const { data: inserted, error } = await supabase
@@ -282,6 +286,52 @@ export function usePatients() {
     [patients]
   );
 
+  const extendContract = useCallback(
+    async (patientId: string, additionalMonths: number): Promise<void> => {
+      // 1. Find the patient
+      const patient = patients.find((p) => p.id === patientId);
+      if (!patient) throw new Error("Paciente não encontrado");
+
+      const newInstallments = patient.installments + additionalMonths;
+      const newExtensionMonths =
+        (patient.extensionMonths ?? 0) + additionalMonths;
+      // If original_installments was never set (legacy patient), set it now
+      const originalInstallments =
+        patient.originalInstallments ?? patient.installments;
+
+      const { error } = await supabase
+        .from("patients")
+        .update({
+          installments: newInstallments,
+          extension_months: newExtensionMonths,
+          original_installments: originalInstallments,
+        })
+        .eq("id", patientId);
+
+      if (error) {
+        toast.error("Erro ao estender contrato");
+        throw error;
+      }
+
+      await writeAuditLog({
+        userId: user!.id,
+        userName: user!.user_metadata?.full_name ?? user!.email ?? "Usuário",
+        userEmail: user!.email ?? undefined,
+        module: "pacientes",
+        action: "editar",
+        description: `Contrato de ${patient.name} estendido em +${additionalMonths} meses (de ${originalInstallments} para ${newInstallments} meses)`,
+        entityName: patient.name,
+        entityId: patientId,
+      });
+
+      await fetchPatients();
+      toast.success(
+        `Contrato estendido: +${additionalMonths} meses (total: ${newInstallments} meses)`
+      );
+    },
+    [patients, fetchPatients, user]
+  );
+
   const activePatients = patients.filter((p) => p.active);
   const inactivePatients = patients.filter((p) => !p.active);
 
@@ -301,5 +351,6 @@ export function usePatients() {
     togglePatientActive,
     deletePatient,
     getPatientById,
+    extendContract,
   };
 }

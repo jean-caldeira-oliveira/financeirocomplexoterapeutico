@@ -360,6 +360,7 @@ export type Database = {
           enrollment_due_date: string | null;
           enrollment_fee: number;
           entry_date: string;
+          extension_months: number;
           first_installment_date: string | null;
           guardian_contact: string;
           guardian_name: string;
@@ -369,6 +370,7 @@ export type Database = {
           interest_rate_monthly: number;
           monthly_fee: number;
           name: string;
+          original_installments: number | null;
           referral_source: string;
           user_id: string;
           ward: string;
@@ -380,6 +382,7 @@ export type Database = {
           enrollment_due_date?: string | null;
           enrollment_fee?: number;
           entry_date: string;
+          extension_months?: number;
           first_installment_date?: string | null;
           guardian_contact?: string;
           guardian_name?: string;
@@ -389,6 +392,7 @@ export type Database = {
           interest_rate_monthly?: number;
           monthly_fee?: number;
           name: string;
+          original_installments?: number | null;
           referral_source?: string;
           user_id: string;
           ward?: string;
@@ -400,6 +404,7 @@ export type Database = {
           enrollment_due_date?: string | null;
           enrollment_fee?: number;
           entry_date?: string;
+          extension_months?: number;
           first_installment_date?: string | null;
           guardian_contact?: string;
           guardian_name?: string;
@@ -409,6 +414,7 @@ export type Database = {
           interest_rate_monthly?: number;
           monthly_fee?: number;
           name?: string;
+          original_installments?: number | null;
           referral_source?: string;
           user_id?: string;
           ward?: string;
