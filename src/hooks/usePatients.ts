@@ -19,7 +19,6 @@ export interface AddPatientData {
   guardianContact: string;
   ward: Ward;
   referralSource: string;
-  interestRateMonthly: number;
 }
 
 // Map DB row to Patient type
@@ -90,7 +89,7 @@ export function usePatients() {
         guardian_contact: data.guardianContact,
         ward: data.ward,
         referral_source: data.referralSource,
-        interest_rate_monthly: data.interestRateMonthly,
+        interest_rate_monthly: 1, // 1% ao mês (padrão do sistema)
         active: true,
       };
 
@@ -152,8 +151,6 @@ export function usePatients() {
       if (data.ward !== undefined) updates.ward = data.ward;
       if (data.referralSource !== undefined)
         updates.referral_source = data.referralSource;
-      if (data.interestRateMonthly !== undefined)
-        updates.interest_rate_monthly = data.interestRateMonthly;
 
       const { error } = await supabase
         .from("patients")

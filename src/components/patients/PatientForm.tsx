@@ -1,40 +1,40 @@
-import { useState, useEffect, useCallback } from 'react';
-import { format, setDate, addMonths } from 'date-fns';
-import { CalendarIcon, Settings2 } from 'lucide-react';
-import { Patient, Ward, wardLabels } from '@/types/transaction';
-import { ReferralSource } from '@/hooks/useReferralSources';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Calendar } from '@/components/ui/calendar';
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
-  DialogClose,
-} from '@/components/ui/dialog';
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@/components/ui/popover';
+} from "@/components/ui/popover";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
+} from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/tooltip";
+import { ReferralSource } from "@/hooks/useReferralSources";
+import { cn } from "@/lib/utils";
+import { Patient, Ward, wardLabels } from "@/types/transaction";
+import { addMonths, format, setDate } from "date-fns";
+import { CalendarIcon, Settings2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
 
 export interface PatientFormData {
   name: string;
@@ -50,7 +50,6 @@ export interface PatientFormData {
   guardianContact: string;
   ward: Ward;
   referralSource: string;
-  interestRateMonthly: number;
 }
 
 interface PatientFormProps {
@@ -58,7 +57,7 @@ interface PatientFormProps {
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: PatientFormData) => void;
   initialData?: Patient;
-  mode: 'create' | 'edit';
+  mode: "create" | "edit";
   referralSources: ReferralSource[];
   onManageReferrals: () => void;
 }
@@ -67,18 +66,28 @@ function getDefaultFormData(): PatientFormData {
   const now = new Date();
   const dueDay = 10;
   // Calculate first installment: next occurrence of dueDay after today
-  const sameMonth = setDate(now, Math.min(dueDay, new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()));
+  const sameMonth = setDate(
+    now,
+    Math.min(
+      dueDay,
+      new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate()
+    )
+  );
   let firstInstallment: Date;
   if (sameMonth > now) {
     firstInstallment = sameMonth;
   } else {
     const nextMonth = addMonths(now, 1);
-    const daysInNextMonth = new Date(nextMonth.getFullYear(), nextMonth.getMonth() + 1, 0).getDate();
+    const daysInNextMonth = new Date(
+      nextMonth.getFullYear(),
+      nextMonth.getMonth() + 1,
+      0
+    ).getDate();
     firstInstallment = setDate(nextMonth, Math.min(dueDay, daysInNextMonth));
   }
 
   return {
-    name: '',
+    name: "",
     entryDate: now,
     dueDay,
     monthlyFee: 0,
@@ -87,15 +96,22 @@ function getDefaultFormData(): PatientFormData {
     enrollmentFee: 0,
     enrollmentDueDate: now,
     firstInstallmentDate: firstInstallment,
-    guardianName: '',
-    guardianContact: '',
-    ward: 'masculina',
-    referralSource: '',
-    interestRateMonthly: 2,
+    guardianName: "",
+    guardianContact: "",
+    ward: "masculina",
+    referralSource: "",
   };
 }
 
-export function PatientForm({ open, onOpenChange, onSubmit, initialData, mode, referralSources, onManageReferrals }: PatientFormProps) {
+export function PatientForm({
+  open,
+  onOpenChange,
+  onSubmit,
+  initialData,
+  mode,
+  referralSources,
+  onManageReferrals,
+}: PatientFormProps) {
   const [formData, setFormData] = useState<PatientFormData>(getDefaultFormData);
 
   useEffect(() => {
@@ -108,45 +124,93 @@ export function PatientForm({ open, onOpenChange, onSubmit, initialData, mode, r
         installments: initialData.installments,
         hasEnrollmentFee: initialData.hasEnrollmentFee,
         enrollmentFee: initialData.enrollmentFee,
-        enrollmentDueDate: initialData.enrollmentDueDate ? new Date(initialData.enrollmentDueDate) : new Date(initialData.entryDate),
-        firstInstallmentDate: initialData.firstInstallmentDate ? new Date(initialData.firstInstallmentDate) : new Date(initialData.entryDate),
+        enrollmentDueDate: initialData.enrollmentDueDate
+          ? new Date(initialData.enrollmentDueDate)
+          : new Date(initialData.entryDate),
+        firstInstallmentDate: initialData.firstInstallmentDate
+          ? new Date(initialData.firstInstallmentDate)
+          : new Date(initialData.entryDate),
         guardianName: initialData.guardianName,
         guardianContact: initialData.guardianContact,
         ward: initialData.ward,
         referralSource: initialData.referralSource,
-        interestRateMonthly: initialData.interestRateMonthly ?? 2,
       });
     } else {
       setFormData(getDefaultFormData());
     }
   }, [initialData, open]);
 
+  const [errors, setErrors] = useState<{
+    monthlyFee?: string;
+    enrollmentFee?: string;
+  }>({});
+
   const handleSubmit = () => {
-    if (formData.name.trim()) {
-      onSubmit(formData);
-      setFormData(getDefaultFormData());
+    const newErrors: { monthlyFee?: string; enrollmentFee?: string } = {};
+
+    if (!formData.name.trim()) return;
+
+    if (!formData.monthlyFee || formData.monthlyFee <= 0) {
+      newErrors.monthlyFee = "O valor da mensalidade deve ser maior que R$0,00";
     }
+
+    if (
+      formData.hasEnrollmentFee &&
+      (!formData.enrollmentFee || formData.enrollmentFee <= 0)
+    ) {
+      newErrors.enrollmentFee = "O valor da adesão deve ser maior que R$0,00";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
+    onSubmit(formData);
+    setFormData(getDefaultFormData());
   };
 
   // Calculate the next due day date after a given entry date
-  const calcFirstInstallmentDate = useCallback((entryDate: Date, dueDay: number): Date => {
-    // Try same month first
-    const sameMonth = setDate(entryDate, Math.min(dueDay, new Date(entryDate.getFullYear(), entryDate.getMonth() + 1, 0).getDate()));
-    if (sameMonth > entryDate) return sameMonth;
-    // Otherwise next month
-    const nextMonth = addMonths(entryDate, 1);
-    const daysInNextMonth = new Date(nextMonth.getFullYear(), nextMonth.getMonth() + 1, 0).getDate();
-    return setDate(nextMonth, Math.min(dueDay, daysInNextMonth));
-  }, []);
+  const calcFirstInstallmentDate = useCallback(
+    (entryDate: Date, dueDay: number): Date => {
+      // Try same month first
+      const sameMonth = setDate(
+        entryDate,
+        Math.min(
+          dueDay,
+          new Date(
+            entryDate.getFullYear(),
+            entryDate.getMonth() + 1,
+            0
+          ).getDate()
+        )
+      );
+      if (sameMonth > entryDate) return sameMonth;
+      // Otherwise next month
+      const nextMonth = addMonths(entryDate, 1);
+      const daysInNextMonth = new Date(
+        nextMonth.getFullYear(),
+        nextMonth.getMonth() + 1,
+        0
+      ).getDate();
+      return setDate(nextMonth, Math.min(dueDay, daysInNextMonth));
+    },
+    []
+  );
 
-  const updateField = <K extends keyof PatientFormData>(key: K, value: PatientFormData[K]) => {
-    setFormData(prev => {
+  const updateField = <K extends keyof PatientFormData>(
+    key: K,
+    value: PatientFormData[K]
+  ) => {
+    setFormData((prev) => {
       const next = { ...prev, [key]: value };
 
       // Auto-calculate dates only in create mode
-      if (mode === 'create' && (key === 'entryDate' || key === 'dueDay')) {
-        const entryDate = key === 'entryDate' ? (value as Date) : prev.entryDate;
-        const dueDay = key === 'dueDay' ? (value as number) : prev.dueDay;
+      if (mode === "create" && (key === "entryDate" || key === "dueDay")) {
+        const entryDate =
+          key === "entryDate" ? (value as Date) : prev.entryDate;
+        const dueDay = key === "dueDay" ? (value as number) : prev.dueDay;
         next.enrollmentDueDate = entryDate;
         next.firstInstallmentDate = calcFirstInstallmentDate(entryDate, dueDay);
       }
@@ -160,10 +224,10 @@ export function PatientForm({ open, onOpenChange, onSubmit, initialData, mode, r
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {mode === 'create' ? 'Cadastrar Paciente' : 'Editar Paciente'}
+            {mode === "create" ? "Cadastrar Paciente" : "Editar Paciente"}
           </DialogTitle>
         </DialogHeader>
-        
+
         <div className="grid gap-4 py-4">
           {/* Nome completo */}
           <div className="space-y-2">
@@ -172,7 +236,7 @@ export function PatientForm({ open, onOpenChange, onSubmit, initialData, mode, r
               id="name"
               placeholder="Digite o nome completo"
               value={formData.name}
-              onChange={(e) => updateField('name', e.target.value)}
+              onChange={(e) => updateField("name", e.target.value)}
             />
           </div>
 
@@ -181,7 +245,7 @@ export function PatientForm({ open, onOpenChange, onSubmit, initialData, mode, r
             <Label>Ala *</Label>
             <Select
               value={formData.ward}
-              onValueChange={(value: Ward) => updateField('ward', value)}
+              onValueChange={(value: Ward) => updateField("ward", value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione a ala" />
@@ -210,14 +274,16 @@ export function PatientForm({ open, onOpenChange, onSubmit, initialData, mode, r
                     )}
                   >
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {formData.entryDate ? format(formData.entryDate, "dd/MM/yyyy") : "Selecione"}
+                    {formData.entryDate
+                      ? format(formData.entryDate, "dd/MM/yyyy")
+                      : "Selecione"}
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
                   <Calendar
                     mode="single"
                     selected={formData.entryDate}
-                    onSelect={(date) => date && updateField('entryDate', date)}
+                    onSelect={(date) => date && updateField("entryDate", date)}
                     initialFocus
                     className="pointer-events-auto"
                   />
@@ -229,7 +295,9 @@ export function PatientForm({ open, onOpenChange, onSubmit, initialData, mode, r
               <Label htmlFor="dueDay">Dia de Vencimento *</Label>
               <Select
                 value={(formData.dueDay || 10).toString()}
-                onValueChange={(value) => updateField('dueDay', parseInt(value))}
+                onValueChange={(value) =>
+                  updateField("dueDay", parseInt(value))
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione o dia" />
@@ -252,12 +320,20 @@ export function PatientForm({ open, onOpenChange, onSubmit, initialData, mode, r
               <Input
                 id="monthlyFee"
                 type="number"
-                min="0"
+                min="0.01"
                 step="0.01"
                 placeholder="0,00"
-                value={formData.monthlyFee || ''}
-                onChange={(e) => updateField('monthlyFee', parseFloat(e.target.value) || 0)}
+                value={formData.monthlyFee || ""}
+                onChange={(e) => {
+                  updateField("monthlyFee", parseFloat(e.target.value) || 0);
+                  if (errors.monthlyFee)
+                    setErrors((prev) => ({ ...prev, monthlyFee: undefined }));
+                }}
+                className={errors.monthlyFee ? "border-destructive" : ""}
               />
+              {errors.monthlyFee && (
+                <p className="text-xs text-destructive">{errors.monthlyFee}</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -267,8 +343,10 @@ export function PatientForm({ open, onOpenChange, onSubmit, initialData, mode, r
                 type="number"
                 min="1"
                 placeholder="1"
-                value={formData.installments || ''}
-                onChange={(e) => updateField('installments', parseInt(e.target.value) || 1)}
+                value={formData.installments || ""}
+                onChange={(e) =>
+                  updateField("installments", parseInt(e.target.value) || 1)
+                }
               />
             </div>
           </div>
@@ -286,35 +364,26 @@ export function PatientForm({ open, onOpenChange, onSubmit, initialData, mode, r
                   )}
                 >
                   <CalendarIcon className="mr-2 h-4 w-4" />
-                  {formData.firstInstallmentDate ? format(formData.firstInstallmentDate, "dd/MM/yyyy") : "Selecione"}
+                  {formData.firstInstallmentDate
+                    ? format(formData.firstInstallmentDate, "dd/MM/yyyy")
+                    : "Selecione"}
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0" align="start">
                 <Calendar
                   mode="single"
                   selected={formData.firstInstallmentDate}
-                  onSelect={(date) => date && updateField('firstInstallmentDate', date)}
+                  onSelect={(date) =>
+                    date && updateField("firstInstallmentDate", date)
+                  }
                   initialFocus
                   className="pointer-events-auto"
                 />
               </PopoverContent>
             </Popover>
-            <p className="text-xs text-muted-foreground">As parcelas seguintes serão geradas mês a mês a partir desta data.</p>
-          </div>
-
-          {/* Taxa de Juros por Paciente */}
-          <div className="space-y-2">
-            <Label htmlFor="interestRateMonthly">Taxa de Juros Mensal (%)</Label>
-            <Input
-              id="interestRateMonthly"
-              type="number"
-              min="0"
-              step="0.1"
-              placeholder="2"
-              value={formData.interestRateMonthly || ''}
-              onChange={(e) => updateField('interestRateMonthly', parseFloat(e.target.value) || 0)}
-            />
-            <p className="text-xs text-muted-foreground">Juros calculados pró-rata por dia de atraso sobre o saldo em aberto.</p>
+            <p className="text-xs text-muted-foreground">
+              As parcelas seguintes serão geradas mês a mês a partir desta data.
+            </p>
           </div>
 
           {/* Taxa de Adesão */}
@@ -325,8 +394,8 @@ export function PatientForm({ open, onOpenChange, onSubmit, initialData, mode, r
                 id="hasEnrollmentFee"
                 checked={formData.hasEnrollmentFee}
                 onCheckedChange={(checked) => {
-                  updateField('hasEnrollmentFee', checked);
-                  if (!checked) updateField('enrollmentFee', 0);
+                  updateField("hasEnrollmentFee", checked);
+                  if (!checked) updateField("enrollmentFee", 0);
                 }}
               />
             </div>
@@ -338,12 +407,28 @@ export function PatientForm({ open, onOpenChange, onSubmit, initialData, mode, r
                   <Input
                     id="enrollmentFee"
                     type="number"
-                    min="0"
+                    min="0.01"
                     step="0.01"
                     placeholder="0,00"
-                    value={formData.enrollmentFee || ''}
-                    onChange={(e) => updateField('enrollmentFee', parseFloat(e.target.value) || 0)}
+                    value={formData.enrollmentFee || ""}
+                    onChange={(e) => {
+                      updateField(
+                        "enrollmentFee",
+                        parseFloat(e.target.value) || 0
+                      );
+                      if (errors.enrollmentFee)
+                        setErrors((prev) => ({
+                          ...prev,
+                          enrollmentFee: undefined,
+                        }));
+                    }}
+                    className={errors.enrollmentFee ? "border-destructive" : ""}
                   />
+                  {errors.enrollmentFee && (
+                    <p className="text-xs text-destructive">
+                      {errors.enrollmentFee}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label>Vencimento da Adesão</Label>
@@ -357,14 +442,18 @@ export function PatientForm({ open, onOpenChange, onSubmit, initialData, mode, r
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {formData.enrollmentDueDate ? format(formData.enrollmentDueDate, "dd/MM/yyyy") : "Selecione"}
+                        {formData.enrollmentDueDate
+                          ? format(formData.enrollmentDueDate, "dd/MM/yyyy")
+                          : "Selecione"}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0" align="start">
                       <Calendar
                         mode="single"
                         selected={formData.enrollmentDueDate}
-                        onSelect={(date) => date && updateField('enrollmentDueDate', date)}
+                        onSelect={(date) =>
+                          date && updateField("enrollmentDueDate", date)
+                        }
                         initialFocus
                         className="pointer-events-auto"
                       />
@@ -383,7 +472,7 @@ export function PatientForm({ open, onOpenChange, onSubmit, initialData, mode, r
                 id="guardianName"
                 placeholder="Nome do responsável"
                 value={formData.guardianName}
-                onChange={(e) => updateField('guardianName', e.target.value)}
+                onChange={(e) => updateField("guardianName", e.target.value)}
               />
             </div>
 
@@ -393,7 +482,7 @@ export function PatientForm({ open, onOpenChange, onSubmit, initialData, mode, r
                 id="guardianContact"
                 placeholder="(00) 00000-0000"
                 value={formData.guardianContact}
-                onChange={(e) => updateField('guardianContact', e.target.value)}
+                onChange={(e) => updateField("guardianContact", e.target.value)}
               />
             </div>
           </div>
@@ -421,7 +510,7 @@ export function PatientForm({ open, onOpenChange, onSubmit, initialData, mode, r
             </div>
             <Select
               value={formData.referralSource}
-              onValueChange={(value) => updateField('referralSource', value)}
+              onValueChange={(value) => updateField("referralSource", value)}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Selecione o encaminhamento" />
@@ -456,7 +545,7 @@ export function PatientForm({ open, onOpenChange, onSubmit, initialData, mode, r
             <Button variant="outline">Cancelar</Button>
           </DialogClose>
           <Button onClick={handleSubmit}>
-            {mode === 'create' ? 'Cadastrar' : 'Salvar'}
+            {mode === "create" ? "Cadastrar" : "Salvar"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -630,49 +630,25 @@ export function useInvoices() {
   // Paid invoices are preserved. New installments start from the first future due date.
   const regeneratePatientInvoices = useCallback(
     async (data: GenerateInvoicesData): Promise<void> => {
-      console.log("[DEBUG] regeneratePatientInvoices iniciado", {
-        user: !!user,
-        data,
-      });
-      if (!user) {
-        console.warn("[DEBUG] user é null — abortando regenerate");
-        return;
-      }
+      if (!user) return;
       const today = startOfDay(new Date());
 
       const patientInvoices = invoices.filter(
         (inv) => inv.patientId === data.patientId
-      );
-      console.log(
-        "[DEBUG] patientInvoices encontradas:",
-        patientInvoices.length,
-        patientInvoices.map((i) => ({
-          id: i.id,
-          type: i.type,
-          status: i.status,
-          dueDate: i.dueDate,
-        }))
       );
 
       // Count paid monthly invoices to determine how many have been paid already
       const paidMonthlyCount = patientInvoices.filter(
         (inv) => inv.type === "monthly" && inv.status === "paid"
       ).length;
-      console.log("[DEBUG] paidMonthlyCount:", paidMonthlyCount);
 
       // Check if enrollment invoice is already paid (preserve it if so)
       const enrollmentPaid = patientInvoices.some(
         (inv) => inv.type === "enrollment" && inv.status === "paid"
       );
-      console.log("[DEBUG] enrollmentPaid:", enrollmentPaid);
 
       // Delete all unpaid invoices (pending + overdue), including enrollment if unpaid
       const toDelete = patientInvoices.filter((inv) => inv.status !== "paid");
-      console.log(
-        "[DEBUG] toDelete:",
-        toDelete.length,
-        toDelete.map((i) => ({ id: i.id, type: i.type, status: i.status }))
-      );
 
       if (toDelete.length > 0) {
         const ids = toDelete.map((inv) => inv.id);
@@ -768,14 +744,7 @@ export function useInvoices() {
         }
       }
 
-      console.log("[DEBUG] rows a inserir:", rows.length, rows);
-
-      if (rows.length === 0) {
-        console.warn(
-          "[DEBUG] Nenhuma row para inserir — retornando sem criar cobranças"
-        );
-        return;
-      }
+      if (rows.length === 0) return;
 
       const { data: inserted, error } = await supabase
         .from("invoices")
@@ -783,19 +752,13 @@ export function useInvoices() {
         .select();
 
       if (error) {
-        console.error("[DEBUG] Erro ao inserir cobranças:", error);
+        console.error("Error regenerating invoices:", error);
         toast.error("Erro ao gerar novas cobranças");
         return;
       }
 
-      console.log(
-        "[DEBUG] Cobranças inseridas com sucesso:",
-        inserted?.length,
-        inserted
-      );
       const newInvoices = (inserted || []).map((row) => mapRow(row, []));
       setInvoices((prev) => [...newInvoices, ...prev]);
-      console.log("[DEBUG] regeneratePatientInvoices finalizado com sucesso");
     },
     [user, invoices]
   );

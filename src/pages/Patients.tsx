@@ -125,7 +125,6 @@ const Patients = () => {
         hasEnrollmentFee: data.hasEnrollmentFee,
         enrollmentFee: data.enrollmentFee,
         enrollmentDueDate: data.enrollmentDueDate,
-        interestRateMonthly: data.interestRateMonthly,
       });
 
       setFormOpen(false);
@@ -153,7 +152,6 @@ const Patients = () => {
       data.installments !== editingPatient.installments ||
       toISO(data.firstInstallmentDate) !==
         toISO(editingPatient.firstInstallmentDate) ||
-      data.interestRateMonthly !== editingPatient.interestRateMonthly ||
       data.hasEnrollmentFee !== editingPatient.hasEnrollmentFee ||
       data.enrollmentFee !== editingPatient.enrollmentFee ||
       toISO(data.enrollmentDueDate) !== toISO(editingPatient.enrollmentDueDate);
@@ -173,29 +171,15 @@ const Patients = () => {
   };
 
   const handleConfirmFeeChange = async (regenerate: boolean) => {
-    console.log("[DEBUG] handleConfirmFeeChange chamado", {
-      regenerate,
-      feeChangeConfirm,
-    });
-    if (!feeChangeConfirm) {
-      console.warn("[DEBUG] feeChangeConfirm é null — abortando");
-      return;
-    }
+    if (!feeChangeConfirm) return;
     const { patientId, data } = feeChangeConfirm;
 
     const nameChanged =
       data.name.trim() !== (editingPatient?.name ?? "").trim();
-
-    console.log("[DEBUG] Chamando updatePatient", {
-      patientId,
-      nameChanged,
-      data,
-    });
     await updatePatient(patientId, data, nameChanged);
-    console.log("[DEBUG] updatePatient concluído");
 
     if (regenerate) {
-      const regenPayload = {
+      await regeneratePatientInvoices({
         patientId,
         patientName: data.name,
         monthlyFee: data.monthlyFee,
@@ -206,17 +190,9 @@ const Patients = () => {
         hasEnrollmentFee: data.hasEnrollmentFee,
         enrollmentFee: data.enrollmentFee,
         enrollmentDueDate: data.enrollmentDueDate,
-        interestRateMonthly: data.interestRateMonthly,
-      };
-      console.log(
-        "[DEBUG] Chamando regeneratePatientInvoices com payload:",
-        regenPayload
-      );
-      await regeneratePatientInvoices(regenPayload);
-      console.log("[DEBUG] regeneratePatientInvoices concluído");
+      });
     }
 
-    console.log("[DEBUG] Fechando modal");
     setFeeChangeConfirm(null);
     setEditingPatient(null);
   };
