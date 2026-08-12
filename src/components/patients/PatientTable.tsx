@@ -1,15 +1,3 @@
-import { format, isValid } from 'date-fns';
-import { Pencil, Trash2, Eye, Power, PowerOff } from 'lucide-react';
-import { Patient, wardLabels } from '@/types/transaction';
-import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,14 +8,33 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
-import { Badge } from '@/components/ui/badge';
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
+} from "@/components/ui/tooltip";
+import { Patient, wardLabels } from "@/types/transaction";
+import { format, isValid } from "date-fns";
+import {
+  CalendarPlus,
+  Eye,
+  Pencil,
+  Power,
+  PowerOff,
+  Trash2,
+} from "lucide-react";
 
 interface PatientTableProps {
   patients: Patient[];
@@ -35,19 +42,27 @@ interface PatientTableProps {
   onDelete: (id: string) => void;
   onView: (patient: Patient) => void;
   onToggleActive: (id: string) => void;
+  onExtendContract?: (patient: Patient) => void;
 }
 
-export function PatientTable({ patients, onEdit, onDelete, onView, onToggleActive }: PatientTableProps) {
+export function PatientTable({
+  patients,
+  onEdit,
+  onDelete,
+  onView,
+  onToggleActive,
+  onExtendContract,
+}: PatientTableProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    if (!isValid(date)) return '-';
-    return format(date, 'dd/MM/yyyy');
+    if (!isValid(date)) return "-";
+    return format(date, "dd/MM/yyyy");
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
     }).format(value);
   };
 
@@ -69,26 +84,31 @@ export function PatientTable({ patients, onEdit, onDelete, onView, onToggleActiv
         </TableHeader>
         <TableBody>
           {patients.map((patient, index) => (
-            <TableRow key={patient.id} className={!patient.active ? 'opacity-60' : ''}>
+            <TableRow
+              key={patient.id}
+              className={!patient.active ? "opacity-60" : ""}
+            >
               <TableCell className="font-medium text-muted-foreground">
-                {patient.active ? index + 1 : '-'}
+                {patient.active ? index + 1 : "-"}
               </TableCell>
               <TableCell>
-                <Badge 
-                  className={patient.active 
-                    ? 'bg-green-500 hover:bg-green-600 text-white' 
-                    : 'bg-red-500 hover:bg-red-600 text-white'
+                <Badge
+                  className={
+                    patient.active
+                      ? "bg-green-500 hover:bg-green-600 text-white"
+                      : "bg-red-500 hover:bg-red-600 text-white"
                   }
                 >
-                  {patient.active ? 'Ativo' : 'Inativo'}
+                  {patient.active ? "Ativo" : "Inativo"}
                 </Badge>
               </TableCell>
               <TableCell className="font-medium">{patient.name}</TableCell>
               <TableCell>
-                <Badge 
-                  className={patient.ward === 'feminina' 
-                    ? 'bg-pink-500 hover:bg-pink-600 text-white' 
-                    : 'bg-blue-500 hover:bg-blue-600 text-white'
+                <Badge
+                  className={
+                    patient.ward === "feminina"
+                      ? "bg-pink-500 hover:bg-pink-600 text-white"
+                      : "bg-blue-500 hover:bg-blue-600 text-white"
                   }
                 >
                   {wardLabels[patient.ward]}
@@ -97,7 +117,7 @@ export function PatientTable({ patients, onEdit, onDelete, onView, onToggleActiv
               <TableCell>{formatDate(patient.entryDate)}</TableCell>
               <TableCell>Dia {patient.dueDay}</TableCell>
               <TableCell>{formatCurrency(patient.monthlyFee)}</TableCell>
-              <TableCell>{patient.guardianName || '-'}</TableCell>
+              <TableCell>{patient.guardianName || "-"}</TableCell>
               <TableCell className="text-right">
                 <div className="flex justify-end gap-1">
                   <Tooltip>
@@ -112,7 +132,7 @@ export function PatientTable({ patients, onEdit, onDelete, onView, onToggleActiv
                     </TooltipTrigger>
                     <TooltipContent>Ver detalhes</TooltipContent>
                   </Tooltip>
-                  
+
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -125,6 +145,21 @@ export function PatientTable({ patients, onEdit, onDelete, onView, onToggleActiv
                     </TooltipTrigger>
                     <TooltipContent>Editar</TooltipContent>
                   </Tooltip>
+
+                  {patient.active && onExtendContract && (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => onExtendContract(patient)}
+                        >
+                          <CalendarPlus className="h-4 w-4 text-blue-600" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Estender Contrato</TooltipContent>
+                    </Tooltip>
+                  )}
 
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -141,7 +176,7 @@ export function PatientTable({ patients, onEdit, onDelete, onView, onToggleActiv
                       </Button>
                     </TooltipTrigger>
                     <TooltipContent>
-                      {patient.active ? 'Desativar' : 'Ativar'}
+                      {patient.active ? "Desativar" : "Ativar"}
                     </TooltipContent>
                   </Tooltip>
 
@@ -161,8 +196,9 @@ export function PatientTable({ patients, onEdit, onDelete, onView, onToggleActiv
                         <AlertDialogHeader>
                           <AlertDialogTitle>Excluir paciente?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Tem certeza que deseja excluir <strong>{patient.name}</strong>?
-                            Esta ação não pode ser desfeita.
+                            Tem certeza que deseja excluir{" "}
+                            <strong>{patient.name}</strong>? Esta ação não pode
+                            ser desfeita.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

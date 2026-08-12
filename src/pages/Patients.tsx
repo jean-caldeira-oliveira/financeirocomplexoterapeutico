@@ -1,3 +1,4 @@
+import ExtendContractDialog from "@/components/patients/ExtendContractDialog";
 import { PatientDetailsDialog } from "@/components/patients/PatientDetailsDialog";
 import {
   PatientForm,
@@ -28,6 +29,7 @@ import {
 import { useInvoices } from "@/hooks/useInvoices";
 import { usePatients } from "@/hooks/usePatients";
 import { useReferralSources } from "@/hooks/useReferralSources";
+import { Invoice } from "@/types/invoice";
 import { Patient, Ward, wardLabels } from "@/types/transaction";
 import {
   ArrowLeft,
@@ -52,6 +54,7 @@ const Patients = () => {
     deletePatient,
     togglePatientActive,
     patientsByWard,
+    extendContract,
   } = usePatients();
   const {
     sources: referralSources,
@@ -60,13 +63,18 @@ const Patients = () => {
     deleteSource,
   } = useReferralSources();
   const {
+    invoices,
     generateInvoicesForPatient,
     deleteFuturePatientInvoices,
     regeneratePatientInvoices,
+    generateExtensionInvoices,
   } = useInvoices();
   const [formOpen, setFormOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const [viewingPatient, setViewingPatient] = useState<Patient | null>(null);
+  const [extendingPatient, setExtendingPatient] = useState<Patient | null>(
+    null
+  );
   const [referralsDialogOpen, setReferralsDialogOpen] = useState(false);
   const [feeChangeConfirm, setFeeChangeConfirm] = useState<{
     patientId: string;
@@ -218,6 +226,40 @@ const Patients = () => {
 
   const handleView = (patient: Patient) => {
     setViewingPatient(patient);
+  };
+
+  const handleExtendContract = async (additionalMonths: number) => {
+    if (!extendingPatient) return;
+    const patientInvoices: Invoice[] = invoices.filter(
+      (inv) => inv.patientId === extendingPatient.id
+    );
+    const monthlyInvoices = patientInvoices.filter(
+      (inv) => inv.type === "monthly"
+    );
+    const lastMonthlyInvoice =
+      monthlyInvoices.length > 0
+        ? monthlyInvoices.reduce((prev, curr) =>
+            curr.installmentNumber > prev.installmentNumber ? curr : prev
+          )
+        : null;
+    const lastInvoiceDueDate = lastMonthlyInvoice
+      ? new Date(lastMonthlyInvoice.dueDate)
+      : extendingPatient.firstInstallmentDate
+      ? new Date(extendingPatient.firstInstallmentDate)
+      : new Date();
+
+    await extendContract(extendingPatient.id, additionalMonths);
+    await generateExtensionInvoices({
+      patientId: extendingPatient.id,
+      patientName: extendingPatient.name,
+      monthlyFee: extendingPatient.monthlyFee,
+      dueDay: extendingPatient.dueDay,
+      currentTotalInstallments:
+        extendingPatient.installments + additionalMonths,
+      additionalMonths,
+      lastInvoiceDueDate,
+      interestRateMonthly: extendingPatient.interestRateMonthly,
+    });
   };
 
   const activeCount = patients.filter((p) => p.active).length;
@@ -376,6 +418,7 @@ const Patients = () => {
                 const patient = patients.find((p) => p.id === id);
                 if (patient) handleToggleActive(patient);
               }}
+              onExtendContract={(patient) => setExtendingPatient(patient)}
             />
           )}
         </div>
@@ -408,6 +451,19 @@ const Patients = () => {
         onOpenChange={(open) => !open && setViewingPatient(null)}
         patient={viewingPatient}
       />
+
+      {/* Extend Contract Dialog */}
+      {extendingPatient && (
+        <ExtendContractDialog
+          open={!!extendingPatient}
+          onOpenChange={(open) => !open && setExtendingPatient(null)}
+          patient={extendingPatient}
+          invoices={invoices.filter(
+            (inv) => inv.patientId === extendingPatient.id
+          )}
+          onExtend={handleExtendContract}
+        />
+      )}
 
       {/* Referral Sources Management */}
       <ReferralSourcesDialog
