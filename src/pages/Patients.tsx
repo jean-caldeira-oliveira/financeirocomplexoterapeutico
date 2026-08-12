@@ -33,7 +33,7 @@ import {
   ArrowLeft,
   Building2,
   Filter,
-Search,
+  Search,
   Settings2,
   UserPlus,
 } from "lucide-react";
@@ -73,12 +73,13 @@ const Patients = () => {
     data: PatientFormData;
     oldFee: number;
   } | null>(null);
-  const [deactivateConfirm, setDeactivateConfirm] = useState<Patient | null>(null);
+  const [deactivateConfirm, setDeactivateConfirm] = useState<Patient | null>(
+    null
+  );
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
   const [wardFilter, setWardFilter] = useState<WardFilter>("all");
   const [referralFilter, setReferralFilter] = useState<ReferralFilter>("all");
   const [searchQuery, setSearchQuery] = useState("");
-
 
   const filteredPatients = useMemo(() => {
     return patients.filter((patient) => {
@@ -136,12 +137,28 @@ const Patients = () => {
   const handleEditPatient = (data: PatientFormData) => {
     if (!editingPatient) return;
 
+    // Comparação segura de datas usando toISOString() em ambos os lados
+    const toISO = (d: Date | string | undefined | null): string => {
+      if (!d) return "";
+      try {
+        return new Date(d).toISOString().slice(0, 10);
+      } catch {
+        return "";
+      }
+    };
+
     const invoiceParamsChanged =
       data.monthlyFee !== editingPatient.monthlyFee ||
       data.dueDay !== editingPatient.dueDay ||
       data.installments !== editingPatient.installments ||
-      String(data.firstInstallmentDate) !== String(editingPatient.firstInstallmentDate) ||
-      data.interestRateMonthly !== editingPatient.interestRateMonthly;
+      toISO(data.firstInstallmentDate) !==
+        toISO(editingPatient.firstInstallmentDate) ||
+      data.interestRateMonthly !== editingPatient.interestRateMonthly ||
+      data.hasEnrollmentFee !== editingPatient.hasEnrollmentFee ||
+      data.enrollmentFee !== editingPatient.enrollmentFee ||
+      toISO(data.enrollmentDueDate) !== toISO(editingPatient.enrollmentDueDate);
+
+    const nameChanged = data.name.trim() !== editingPatient.name.trim();
 
     if (invoiceParamsChanged) {
       setFeeChangeConfirm({
@@ -150,7 +167,7 @@ const Patients = () => {
         oldFee: editingPatient.monthlyFee,
       });
     } else {
-      updatePatient(editingPatient.id, data);
+      updatePatient(editingPatient.id, data, nameChanged);
       setEditingPatient(null);
     }
   };
@@ -159,7 +176,9 @@ const Patients = () => {
     if (!feeChangeConfirm) return;
     const { patientId, data } = feeChangeConfirm;
 
-    await updatePatient(patientId, data);
+    const nameChanged =
+      data.name.trim() !== (editingPatient?.name ?? "").trim();
+    await updatePatient(patientId, data, nameChanged);
 
     if (regenerate) {
       await regeneratePatientInvoices({
@@ -170,6 +189,9 @@ const Patients = () => {
         installments: data.installments,
         startDate: data.entryDate,
         firstInstallmentDate: data.firstInstallmentDate,
+        hasEnrollmentFee: data.hasEnrollmentFee,
+        enrollmentFee: data.enrollmentFee,
+        enrollmentDueDate: data.enrollmentDueDate,
         interestRateMonthly: data.interestRateMonthly,
       });
     }
@@ -454,10 +476,12 @@ const Patients = () => {
             <AlertDialogDescription asChild>
               <div className="space-y-2">
                 <p>
-                  Você alterou dados que afetam as cobranças (valor, dia de vencimento, número de parcelas ou data da primeira parcela).
+                  Você alterou dados que afetam as cobranças (valor, dia de
+                  vencimento, número de parcelas ou data da primeira parcela).
                 </p>
                 <p>
-                  Deseja <strong>recriar as cobranças pendentes</strong> com os novos dados?
+                  Deseja <strong>recriar as cobranças pendentes</strong> com os
+                  novos dados?
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Cobranças já pagas não serão afetadas.

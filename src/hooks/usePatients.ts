@@ -126,7 +126,7 @@ export function usePatients() {
   );
 
   const updatePatient = useCallback(
-    async (id: string, data: Partial<AddPatientData>) => {
+    async (id: string, data: Partial<AddPatientData>, nameChanged = false) => {
       const updates: any = {};
       if (data.name !== undefined) updates.name = data.name;
       if (data.entryDate !== undefined)
@@ -166,6 +166,22 @@ export function usePatients() {
         return;
       }
 
+      // Se o nome mudou, atualiza patient_name em todas as cobranças do paciente
+      if (nameChanged && data.name) {
+        const { error: invoiceError } = await supabase
+          .from("invoices")
+          .update({ patient_name: data.name })
+          .eq("patient_id", id);
+
+        if (invoiceError) {
+          console.error(
+            "Error updating patient_name in invoices:",
+            invoiceError
+          );
+          // Não bloqueia o fluxo — o cadastro já foi salvo
+        }
+      }
+
       const patient = patients.find((p) => p.id === id);
       await writeAuditLog({
         userId: user!.id,
@@ -173,8 +189,8 @@ export function usePatients() {
         userEmail: user!.email ?? undefined,
         module: "pacientes",
         action: "editar",
-        description: `Paciente editado: "${patient?.name ?? id}"`,
-        entityName: patient?.name ?? undefined,
+        description: `Paciente editado: "${data.name ?? patient?.name ?? id}"`,
+        entityName: data.name ?? patient?.name ?? undefined,
         entityId: id,
       });
 
@@ -198,7 +214,7 @@ export function usePatients() {
         })
       );
     },
-    []
+    [patients, user]
   );
 
   const togglePatientActive = useCallback(

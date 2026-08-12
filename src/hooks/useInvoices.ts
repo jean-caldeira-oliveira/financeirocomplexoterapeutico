@@ -28,6 +28,8 @@ export interface GenerateInvoicesData {
   enrollmentFee?: number;
   enrollmentDueDate?: Date;
   interestRateMonthly?: number;
+  fineRate?: number;
+  gracePeriodDays?: number;
 }
 
 export interface AddInvoicePaymentData {
@@ -631,19 +633,22 @@ export function useInvoices() {
       if (!user) return;
       const today = startOfDay(new Date());
 
-      // Count paid monthly invoices to determine how many have been paid already
       const patientInvoices = invoices.filter(
         (inv) => inv.patientId === data.patientId
       );
+
+      // Count paid monthly invoices to determine how many have been paid already
       const paidMonthlyCount = patientInvoices.filter(
         (inv) => inv.type === "monthly" && inv.status === "paid"
       ).length;
 
-      // Delete unpaid (pending + overdue) future and current invoices
-      const toDelete = patientInvoices.filter((inv) => {
-        if (inv.status === "paid") return false;
-        return true; // delete all unpaid regardless of date
-      });
+      // Check if enrollment invoice is already paid (preserve it if so)
+      const enrollmentPaid = patientInvoices.some(
+        (inv) => inv.type === "enrollment" && inv.status === "paid"
+      );
+
+      // Delete all unpaid invoices (pending + overdue), including enrollment if unpaid
+      const toDelete = patientInvoices.filter((inv) => inv.status !== "paid");
 
       if (toDelete.length > 0) {
         const ids = toDelete.map((inv) => inv.id);
@@ -659,40 +664,84 @@ export function useInvoices() {
         setInvoices((prev) => prev.filter((inv) => !ids.includes(inv.id)));
       }
 
-      // Remaining installments = total - already paid
-      const remainingInstallments = Math.max(
-        0,
-        data.installments - paidMonthlyCount
-      );
-      if (remainingInstallments === 0) return;
+      const fineRate = data.fineRate ?? DEFAULT_FINE_RATE;
+      const gracePeriodDays = data.gracePeriodDays ?? 0;
+      const interestRate =
+        data.interestRateMonthly ?? DEFAULT_INTEREST_RATE_MONTHLY;
 
-      // Generate new invoices starting from the first future month
-      // Find the next due date from today based on dueDay
-      const baseDate = data.firstInstallmentDate ?? data.startDate;
+      // Total installments considering enrollment
+      const totalInstallments =
+        data.hasEnrollmentFee && data.enrollmentFee && data.enrollmentFee > 0
+          ? data.installments + 1
+          : data.installments;
+
       const rows: any[] = [];
 
-      // Find the starting month offset: skip months that are already paid
-      for (let i = 0; i < remainingInstallments; i++) {
-        const monthOffset = paidMonthlyCount + i;
-        const baseMonthDate = addMonths(baseDate, monthOffset);
-        const year = baseMonthDate.getFullYear();
-        const month = baseMonthDate.getMonth();
-        const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
-        const actualDueDay = Math.min(data.dueDay, lastDayOfMonth);
-        const dueDate = new Date(year, month, actualDueDay);
-
+      // Recriar adesão se existia e não estava paga
+      if (
+        !enrollmentPaid &&
+        data.hasEnrollmentFee &&
+        data.enrollmentFee &&
+        data.enrollmentFee > 0
+      ) {
+        const enrollDueDate = data.enrollmentDueDate
+          ? startOfDay(data.enrollmentDueDate)
+          : startOfDay(data.startDate);
         rows.push({
           user_id: user.id,
           patient_id: data.patientId,
           patient_name: data.patientName,
-          amount: data.monthlyFee,
-          due_date: dueDate.toISOString(),
-          installment_number: paidMonthlyCount + i + 1,
-          total_installments: data.installments,
-          status: isBefore(startOfDay(dueDate), today) ? "overdue" : "pending",
-          type: "monthly",
-          interest_rate_monthly: data.interestRateMonthly,
+          amount: data.enrollmentFee,
+          due_date: enrollDueDate.toISOString(),
+          installment_number: 1,
+          total_installments: totalInstallments,
+          status: isBefore(enrollDueDate, today) ? "overdue" : "pending",
+          type: "enrollment",
+          interest_rate_monthly: interestRate,
+          fine_rate: fineRate,
+          grace_period_days: gracePeriodDays,
         });
+      }
+
+      // Remaining monthly installments = total - already paid
+      const remainingInstallments = Math.max(
+        0,
+        data.installments - paidMonthlyCount
+      );
+
+      if (remainingInstallments > 0) {
+        const baseDate = data.firstInstallmentDate ?? data.startDate;
+        const startingInstallmentNumber =
+          data.hasEnrollmentFee && data.enrollmentFee && data.enrollmentFee > 0
+            ? paidMonthlyCount + 2
+            : paidMonthlyCount + 1;
+
+        for (let i = 0; i < remainingInstallments; i++) {
+          const monthOffset = paidMonthlyCount + i;
+          const baseMonthDate = addMonths(baseDate, monthOffset);
+          const year = baseMonthDate.getFullYear();
+          const month = baseMonthDate.getMonth();
+          const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+          const actualDueDay = Math.min(data.dueDay, lastDayOfMonth);
+          const dueDate = new Date(year, month, actualDueDay);
+
+          rows.push({
+            user_id: user.id,
+            patient_id: data.patientId,
+            patient_name: data.patientName,
+            amount: data.monthlyFee,
+            due_date: dueDate.toISOString(),
+            installment_number: startingInstallmentNumber + i,
+            total_installments: totalInstallments,
+            status: isBefore(startOfDay(dueDate), today)
+              ? "overdue"
+              : "pending",
+            type: "monthly",
+            interest_rate_monthly: interestRate,
+            fine_rate: fineRate,
+            grace_period_days: gracePeriodDays,
+          });
+        }
       }
 
       if (rows.length === 0) return;
