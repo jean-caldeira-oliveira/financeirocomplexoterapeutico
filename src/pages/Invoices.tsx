@@ -3,6 +3,7 @@ import { ReceivePaymentDialog } from "@/components/invoices/ReceivePaymentDialog
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
@@ -41,7 +42,6 @@ import {
 } from "@/types/invoice";
 import { format, isSameMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Input } from "@/components/ui/input";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -72,6 +72,7 @@ const Invoices = () => {
     getInvoicePaidAmount,
     getInvoiceRemainingAmount,
     getInvoiceInterest,
+    getInvoiceChargesBreakdown,
     getInvoiceTotalDue,
   } = useInvoices();
   const { patients } = usePatients();
@@ -473,30 +474,49 @@ const Invoices = () => {
                             {format(new Date(invoice.dueDate), "dd/MM/yyyy")}
                           </TableCell>
                           <TableCell>
-                            <div className="space-y-1 text-sm">
-                              <p>
-                                Recebido:{" "}
-                                {formatCurrency(getInvoicePaidAmount(invoice))}
-                              </p>
-                              <p className="text-muted-foreground">
-                                Saldo:{" "}
-                                {formatCurrency(
-                                  getInvoiceRemainingAmount(invoice)
-                                )}
-                              </p>
-                              {getInvoiceInterest(invoice) > 0 && (
-                                <p className="text-red-500 font-medium">
-                                  Juros:{" "}
-                                  {formatCurrency(getInvoiceInterest(invoice))}
-                                </p>
-                              )}
-                              {getInvoiceInterest(invoice) > 0 && (
-                                <p className="font-semibold text-foreground">
-                                  Total:{" "}
-                                  {formatCurrency(getInvoiceTotalDue(invoice))}
-                                </p>
-                              )}
-                            </div>
+                            {(() => {
+                              const breakdown =
+                                getInvoiceChargesBreakdown(invoice);
+                              const hasCharges = breakdown.total > 0;
+                              return (
+                                <div className="space-y-1 text-sm">
+                                  <p>
+                                    Recebido:{" "}
+                                    {formatCurrency(
+                                      getInvoicePaidAmount(invoice)
+                                    )}
+                                  </p>
+                                  <p className="text-muted-foreground">
+                                    Saldo:{" "}
+                                    {formatCurrency(
+                                      getInvoiceRemainingAmount(invoice)
+                                    )}
+                                  </p>
+                                  {hasCharges && (
+                                    <>
+                                      {breakdown.fine > 0 && (
+                                        <p className="text-amber-600 dark:text-amber-400 font-medium">
+                                          Multa (2%):{" "}
+                                          {formatCurrency(breakdown.fine)}
+                                        </p>
+                                      )}
+                                      {breakdown.interest > 0 && (
+                                        <p className="text-red-500 font-medium">
+                                          Juros ({breakdown.daysLate}d):{" "}
+                                          {formatCurrency(breakdown.interest)}
+                                        </p>
+                                      )}
+                                      <p className="font-semibold text-foreground border-t border-border/50 pt-1">
+                                        Total c/ encargos:{" "}
+                                        {formatCurrency(
+                                          getInvoiceTotalDue(invoice)
+                                        )}
+                                      </p>
+                                    </>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell>
                             <div className="flex flex-col gap-1">
@@ -659,7 +679,9 @@ const Invoices = () => {
                                 <ReceivePaymentDialog
                                   invoiceAmount={invoice.amount}
                                   paidAmount={getInvoicePaidAmount(invoice)}
-                                  interestAmount={getInvoiceInterest(invoice)}
+                                  chargesBreakdown={getInvoiceChargesBreakdown(
+                                    invoice
+                                  )}
                                   onConfirm={(paymentData) =>
                                     addPayment(invoice.id, paymentData)
                                   }

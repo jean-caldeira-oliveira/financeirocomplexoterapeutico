@@ -12,7 +12,9 @@ import { addMonths, differenceInDays, isBefore, startOfDay } from "date-fns";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
-const DEFAULT_INTEREST_RATE_MONTHLY = 2;
+const DEFAULT_INTEREST_RATE_MONTHLY = 1; // 1% ao mês = 0,033%/dia
+const DEFAULT_FINE_RATE = 2; // 2% de multa fixa
+const DAILY_INTEREST_RATE = 0.00033; // 0,033% ao dia (juros compostos)
 
 export interface GenerateInvoicesData {
   patientId: string;
@@ -82,30 +84,64 @@ const getInvoiceRemainingAmount = (invoice: Invoice) => {
   return remaining > 0 ? remaining : 0;
 };
 
-const getInvoiceInterest = (invoice: Invoice) => {
-  if (invoice.status === "paid") return 0;
-  const rate = invoice.interestRateMonthly ?? DEFAULT_INTEREST_RATE_MONTHLY;
-  const fineRate = invoice.fineRate ?? 0;
+export interface InvoiceChargesBreakdown {
+  fine: number; // Multa de mora (2% fixo, cobrada uma única vez)
+  interest: number; // Juros de mora (0,033%/dia, compostos)
+  total: number; // fine + interest
+  daysLate: number; // dias de atraso efetivos (após carência)
+}
+
+/**
+ * Calcula o detalhamento de encargos por atraso de uma cobrança.
+ * - Multa: 2% fixo sobre o saldo, cobrada a partir do 1º dia de atraso (uma única vez)
+ * - Juros: 0,033%/dia em juros compostos sobre o saldo
+ * - Carência: se configurada, nenhum encargo é cobrado durante o período de carência
+ */
+const getInvoiceChargesBreakdown = (
+  invoice: Invoice
+): InvoiceChargesBreakdown => {
+  if (invoice.status === "paid")
+    return { fine: 0, interest: 0, total: 0, daysLate: 0 };
+
+  const fineRate = invoice.fineRate ?? DEFAULT_FINE_RATE;
   const graceDays = invoice.gracePeriodDays ?? 0;
   const today = startOfDay(new Date());
   const dueDate = startOfDay(new Date(invoice.dueDate));
-  const daysLate = differenceInDays(today, dueDate);
-  if (daysLate <= 0) return 0;
-  // Grace period: no interest/fine during grace
-  const effectiveDaysLate = Math.max(0, daysLate - graceDays);
-  if (effectiveDaysLate <= 0) return 0;
+  const rawDaysLate = differenceInDays(today, dueDate);
+
+  if (rawDaysLate <= 0) return { fine: 0, interest: 0, total: 0, daysLate: 0 };
+
+  // Período de carência: sem encargos durante a carência
+  const effectiveDaysLate = Math.max(0, rawDaysLate - graceDays);
+  if (effectiveDaysLate <= 0)
+    return { fine: 0, interest: 0, total: 0, daysLate: 0 };
+
   const remaining = getInvoiceRemainingAmount(invoice);
-  // Fine (multa): one-time percentage on remaining
-  const fineAmount = fineRate > 0 ? remaining * (fineRate / 100) : 0;
-  // Interest: pro-rata daily
-  const dailyRate = rate / 100 / 30;
+
+  // Multa: percentual fixo sobre o saldo, cobrada uma única vez
+  const fine =
+    fineRate > 0 ? Math.round(remaining * (fineRate / 100) * 100) / 100 : 0;
+
+  // Juros compostos: saldo × ((1 + 0,00033)^dias - 1)
   const interestAmount =
-    rate > 0 ? remaining * dailyRate * effectiveDaysLate : 0;
-  return Math.round((fineAmount + interestAmount) * 100) / 100;
+    remaining * (Math.pow(1 + DAILY_INTEREST_RATE, effectiveDaysLate) - 1);
+  const interest = Math.round(interestAmount * 100) / 100;
+
+  const total = Math.round((fine + interest) * 100) / 100;
+
+  return { fine, interest, total, daysLate: effectiveDaysLate };
 };
 
-const getInvoiceTotalDue = (invoice: Invoice) => {
-  return getInvoiceRemainingAmount(invoice) + getInvoiceInterest(invoice);
+// Mantido para compatibilidade retroativa — retorna o total de encargos
+const getInvoiceInterest = (invoice: Invoice): number => {
+  return getInvoiceChargesBreakdown(invoice).total;
+};
+
+const getInvoiceTotalDue = (invoice: Invoice): number => {
+  return (
+    getInvoiceRemainingAmount(invoice) +
+    getInvoiceChargesBreakdown(invoice).total
+  );
 };
 
 const SYSTEM_START = new Date(2026, 4, 1); // May 1, 2026
@@ -225,7 +261,10 @@ export function useInvoices() {
           total_installments: totalInstallments,
           status: isBefore(enrollDueDate, today) ? "overdue" : "pending",
           type: "enrollment",
-          interest_rate_monthly: data.interestRateMonthly,
+          interest_rate_monthly:
+            data.interestRateMonthly ?? DEFAULT_INTEREST_RATE_MONTHLY,
+          fine_rate: DEFAULT_FINE_RATE,
+          grace_period_days: 0,
         });
       }
 
@@ -251,7 +290,10 @@ export function useInvoices() {
           total_installments: totalInstallments,
           status: isBefore(dueDate, today) ? "overdue" : "pending",
           type: "monthly",
-          interest_rate_monthly: data.interestRateMonthly,
+          interest_rate_monthly:
+            data.interestRateMonthly ?? DEFAULT_INTEREST_RATE_MONTHLY,
+          fine_rate: DEFAULT_FINE_RATE,
+          grace_period_days: 0,
         });
       }
 
@@ -347,6 +389,15 @@ export function useInvoices() {
       );
 
       const paidAmount = payment.amount;
+      const breakdown = getInvoiceChargesBreakdown(invoice);
+      const hasCharges = breakdown.total > 0;
+      const chargesDesc = hasCharges
+        ? ` | Encargos: multa R$${breakdown.fine.toFixed(
+            2
+          )} + juros R$${breakdown.interest.toFixed(2)} (${
+            breakdown.daysLate
+          } dias)`
+        : "";
       await writeAuditLog({
         userId: user!.id,
         userName: user!.user_metadata?.full_name ?? user!.email ?? "Usuário",
@@ -358,7 +409,7 @@ export function useInvoices() {
           2
         )} registrado para "${invoice?.patientName ?? id}" — parcela ${
           invoice?.installmentNumber
-        }/${invoice?.totalInstallments}`,
+        }/${invoice?.totalInstallments}${chargesDesc}`,
         entityName: invoice?.patientName ?? undefined,
         entityId: id,
       });
@@ -921,8 +972,9 @@ export function useInvoices() {
     getInvoicesPendingByMonth,
     getInvoicePaidAmount,
     getInvoiceRemainingAmount,
-    getInvoiceInterest: getInvoiceInterest,
-    getInvoiceTotalDue: getInvoiceTotalDue,
+    getInvoiceInterest,
+    getInvoiceChargesBreakdown,
+    getInvoiceTotalDue,
     updatePendingInvoiceAmounts,
     getInvoiceIncomeByDateRange,
     getInvoiceExpectedIncomeByDateRange,
