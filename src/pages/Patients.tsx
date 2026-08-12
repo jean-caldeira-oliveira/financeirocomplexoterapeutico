@@ -173,15 +173,29 @@ const Patients = () => {
   };
 
   const handleConfirmFeeChange = async (regenerate: boolean) => {
-    if (!feeChangeConfirm) return;
+    console.log("[DEBUG] handleConfirmFeeChange chamado", {
+      regenerate,
+      feeChangeConfirm,
+    });
+    if (!feeChangeConfirm) {
+      console.warn("[DEBUG] feeChangeConfirm é null — abortando");
+      return;
+    }
     const { patientId, data } = feeChangeConfirm;
 
     const nameChanged =
       data.name.trim() !== (editingPatient?.name ?? "").trim();
+
+    console.log("[DEBUG] Chamando updatePatient", {
+      patientId,
+      nameChanged,
+      data,
+    });
     await updatePatient(patientId, data, nameChanged);
+    console.log("[DEBUG] updatePatient concluído");
 
     if (regenerate) {
-      await regeneratePatientInvoices({
+      const regenPayload = {
         patientId,
         patientName: data.name,
         monthlyFee: data.monthlyFee,
@@ -193,9 +207,16 @@ const Patients = () => {
         enrollmentFee: data.enrollmentFee,
         enrollmentDueDate: data.enrollmentDueDate,
         interestRateMonthly: data.interestRateMonthly,
-      });
+      };
+      console.log(
+        "[DEBUG] Chamando regeneratePatientInvoices com payload:",
+        regenPayload
+      );
+      await regeneratePatientInvoices(regenPayload);
+      console.log("[DEBUG] regeneratePatientInvoices concluído");
     }
 
+    console.log("[DEBUG] Fechando modal");
     setFeeChangeConfirm(null);
     setEditingPatient(null);
   };
