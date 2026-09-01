@@ -54,6 +54,7 @@ import {
   UtensilsCrossed,
   Wallet,
   Wallet2,
+  Wrench,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
@@ -68,7 +69,8 @@ interface NavEntry extends NavItem {
   subItems?: NavItem[];
 }
 
-const navItems: NavEntry[] = [
+function buildNavItems(isAdmin: boolean): NavEntry[] {
+  return [
   {
     to: "/financeiro",
     label: "Financeiro",
@@ -131,16 +133,22 @@ const navItems: NavEntry[] = [
     ],
   },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3, badge: "Em Refinamento" },
-];
-
-const supportNavItems = [
-  { to: "/suporte", label: "Suporte", icon: LifeBuoy },
-];
-
-const adminNavItems = [
-  { to: "/admin", label: "Admin", icon: Shield },
-  { to: "/logs", label: "Logs", icon: ScrollText },
-];
+  {
+    to: "/ti",
+    label: "TI",
+    icon: Wrench,
+    subItems: [
+      { to: "/suporte", label: "Chamados", icon: LifeBuoy },
+      ...(isAdmin
+        ? [
+            { to: "/admin", label: "Permissões", icon: Shield },
+            { to: "/logs", label: "Logs", icon: ScrollText },
+          ]
+        : []),
+    ],
+  },
+  ];
+}
 
 export function AppSidebar() {
   const { signOut } = useAuth();
@@ -154,6 +162,8 @@ export function AppSidebar() {
     [patients, invoices]
   );
 
+  const navItems = useMemo(() => buildNavItems(isAdmin), [isAdmin]);
+
   const groupsWithActiveSubItem = useMemo(
     () =>
       new Set(
@@ -163,7 +173,7 @@ export function AppSidebar() {
           )
           .map((item) => item.to)
       ),
-    [location.pathname]
+    [navItems, location.pathname]
   );
 
   const [openGroups, setOpenGroups] = useState<Set<string>>(
@@ -308,50 +318,6 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {supportNavItems.map((item) => (
-                <SidebarMenuItem key={item.to}>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location.pathname === item.to}
-                    tooltip={item.label}
-                  >
-                    <Link to={item.to}>
-                      <item.icon />
-                      <span>{item.label}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-
-        {isAdmin && (
-          <SidebarGroup>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {adminNavItems.map((item) => (
-                  <SidebarMenuItem key={item.to}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={location.pathname === item.to}
-                      tooltip={item.label}
-                    >
-                      <Link to={item.to}>
-                        <item.icon />
-                        <span>{item.label}</span>
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
       </SidebarContent>
 
       <SidebarFooter>
