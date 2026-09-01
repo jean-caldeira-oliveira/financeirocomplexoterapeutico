@@ -14,6 +14,9 @@ export const roomTypeDescriptions: Record<RoomType, string> = {
 
 export const roomTypeOrder: RoomType[] = ["coletivo", "semi_privativo", "privativo"];
 
+export const PSYCHIATRIC_FOLLOWUP_FEE = 500;
+export const LAUNDRY_FEE = 200;
+
 export interface RoomPricing {
   enrollmentFee: number;
   monthlyFee: number;
@@ -31,6 +34,7 @@ export interface BudgetQuote {
   guardianPhone?: string;
   roomPricing: Record<RoomType, RoomPricing>;
   psychiatricFollowup: boolean;
+  laundryIncluded: boolean;
   periodMonths?: string;
   validityDays: number;
   notes?: string;

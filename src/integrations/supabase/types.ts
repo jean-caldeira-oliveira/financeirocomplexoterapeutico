@@ -23,6 +23,7 @@ export type Database = {
           guardian_name: string;
           guardian_phone: string | null;
           id: string;
+          laundry_included: boolean;
           notes: string | null;
           patient_birth_date: string | null;
           patient_document: string | null;
@@ -45,6 +46,7 @@ export type Database = {
           guardian_name: string;
           guardian_phone?: string | null;
           id?: string;
+          laundry_included?: boolean;
           notes?: string | null;
           patient_birth_date?: string | null;
           patient_document?: string | null;
@@ -67,6 +69,7 @@ export type Database = {
           guardian_name?: string;
           guardian_phone?: string | null;
           id?: string;
+          laundry_included?: boolean;
           notes?: string | null;
           patient_birth_date?: string | null;
           patient_document?: string | null;

@@ -13,6 +13,7 @@ export interface NewBudgetQuoteData {
   guardianPhone?: string;
   roomPricing: Record<RoomType, RoomPricing>;
   psychiatricFollowup: boolean;
+  laundryIncluded: boolean;
   periodMonths?: string;
   validityDays: number;
   notes?: string;
@@ -43,6 +44,7 @@ const mapQuoteRow = (row: any): BudgetQuote => ({
     },
   },
   psychiatricFollowup: row.psychiatric_followup,
+  laundryIncluded: row.laundry_included,
   periodMonths: row.period_months ?? undefined,
   validityDays: row.validity_days,
   notes: row.notes ?? undefined,
@@ -92,6 +94,7 @@ export function useBudgetQuotes() {
           privativo_enrollment_fee: data.roomPricing.privativo.enrollmentFee,
           privativo_monthly_fee: data.roomPricing.privativo.monthlyFee,
           psychiatric_followup: data.psychiatricFollowup,
+          laundry_included: data.laundryIncluded,
           period_months: data.periodMonths || null,
           validity_days: data.validityDays,
           notes: data.notes || null,

@@ -37,6 +37,7 @@ const budgetQuoteSchema = z.object({
     privativo: roomPricingSchema,
   }),
   psychiatricFollowup: z.boolean(),
+  laundryIncluded: z.boolean(),
   periodMonths: z.string().optional(),
   validityDays: z.coerce.number().min(1, "Informe a validade"),
   notes: z.string().optional(),
@@ -57,6 +58,7 @@ const defaultValues: BudgetQuoteFormData = {
     privativo: { enrollmentFee: 0, monthlyFee: 0 },
   },
   psychiatricFollowup: false,
+  laundryIncluded: false,
   periodMonths: "",
   validityDays: 30,
   notes: "",
@@ -248,9 +250,33 @@ export function BudgetQuoteForm() {
               name="psychiatricFollowup"
               render={({ field }) => (
                 <FormItem className="flex flex-row items-center justify-between rounded-md border p-3 sm:col-span-2">
-                  <FormLabel className="cursor-pointer font-normal">
-                    Acompanhamento Psiquiátrico (+R$ 500,00/mês)
-                  </FormLabel>
+                  <div>
+                    <FormLabel className="cursor-pointer font-normal">
+                      Acompanhamento Psiquiátrico
+                    </FormLabel>
+                    <p className="text-xs text-muted-foreground">
+                      Soma R$ 500,00/mês à mensalidade de cada modalidade
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Switch checked={field.value} onCheckedChange={field.onChange} />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="laundryIncluded"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center justify-between rounded-md border p-3 sm:col-span-2">
+                  <div>
+                    <FormLabel className="cursor-pointer font-normal">
+                      Lavanderia Inclusa
+                    </FormLabel>
+                    <p className="text-xs text-muted-foreground">
+                      Soma R$ 200,00/mês à mensalidade de cada modalidade
+                    </p>
+                  </div>
                   <FormControl>
                     <Switch checked={field.value} onCheckedChange={field.onChange} />
                   </FormControl>

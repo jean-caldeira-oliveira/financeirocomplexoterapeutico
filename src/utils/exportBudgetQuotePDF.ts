@@ -1,5 +1,12 @@
 import jsPDF from "jspdf";
-import { BudgetQuote, roomTypeDescriptions, roomTypeLabels, roomTypeOrder } from "@/types/budgetQuote";
+import {
+  BudgetQuote,
+  LAUNDRY_FEE,
+  PSYCHIATRIC_FOLLOWUP_FEE,
+  roomTypeDescriptions,
+  roomTypeLabels,
+  roomTypeOrder,
+} from "@/types/budgetQuote";
 import logo from "@/assets/logo.png";
 
 function fmt(value: number): string {
@@ -16,7 +23,7 @@ const MUTED: [number, number, number] = [122, 101, 88];
 const SAND: [number, number, number] = [237, 224, 212];
 const CREAM: [number, number, number] = [253, 246, 240];
 
-const INCLUDED_ITEMS = [
+const BASE_INCLUDED_ITEMS = [
   "Hospedagem e 4 refeições diárias",
   "Psicólogo individual (1x/sem) e em grupo",
   "Assistente Social e Nutricionista",
@@ -25,10 +32,9 @@ const INCLUDED_ITEMS = [
   "Ed. Física (1x/sem) e academia",
   "12 Passos e Metodologia Minnesota",
   "Oficinas, atividades recreativas e ocupacionais",
-  "Lavanderia até 2 kg/semana",
 ];
 
-const EXTRA_ITEMS = [
+const BASE_EXTRA_ITEMS = [
   "Higiene pessoal e vestuário",
   "Cigarro e erva-mate",
   "Medicamentos de uso contínuo",
@@ -166,13 +172,17 @@ export async function exportBudgetQuotePDF(quote: BudgetQuote) {
   };
   const cardGap = 5;
   const cardW = (pw - marginX * 2 - cardGap * 2) / 3;
-  const cardH = 42;
+  const cardH = quote.psychiatricFollowup || quote.laundryIncluded ? 48 : 42;
   const cardPad = 4;
+
+  const monthlyExtras = (quote.psychiatricFollowup ? PSYCHIATRIC_FOLLOWUP_FEE : 0) +
+    (quote.laundryIncluded ? LAUNDRY_FEE : 0);
 
   roomTypeOrder.forEach((roomType, idx) => {
     const cx = marginX + idx * (cardW + cardGap);
     const roomColor = roomColors[roomType];
     const pricing = quote.roomPricing[roomType];
+    const totalMonthlyFee = pricing.monthlyFee + monthlyExtras;
 
     doc.setDrawColor(...roomColor);
     doc.setLineWidth(0.8);
@@ -214,29 +224,46 @@ export async function exportBudgetQuotePDF(quote: BudgetQuote) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(9);
     doc.setTextColor(...roomColor);
-    doc.text(fmt(pricing.monthlyFee), cx + cardW - cardPad, lineY + 9, { align: "right" });
+    doc.text(fmt(totalMonthlyFee), cx + cardW - cardPad, lineY + 9, { align: "right" });
     doc.setTextColor(0, 0, 0);
+
+    if (monthlyExtras > 0) {
+      const badgeParts: string[] = [];
+      if (quote.psychiatricFollowup) badgeParts.push("Psiquiatria inclusa");
+      if (quote.laundryIncluded) badgeParts.push("Lavanderia inclusa");
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(6.2);
+      doc.setTextColor(...roomColor);
+      doc.text(badgeParts.join(" · "), cx + cardPad, lineY + 13.5);
+      doc.setTextColor(0, 0, 0);
+    }
   });
 
   y += cardH + 4;
 
-  if (quote.psychiatricFollowup) {
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(7.5);
-    doc.setTextColor(...MUTED);
-    doc.text("* Inclui acompanhamento psiquiátrico adicional (R$ 500,00/mês).", marginX, y);
-    doc.setTextColor(0, 0, 0);
-    y += 5;
-  }
-
   // ── INCLUSOS / EXTRAS ──
   sectionHead("Serviços Inclusos & Cobrado à Parte");
+
+  const includedItems = [...BASE_INCLUDED_ITEMS];
+  const extraItems = [...BASE_EXTRA_ITEMS];
+
+  if (quote.psychiatricFollowup) {
+    includedItems.push(`Acompanhamento psiquiátrico (já incluso na mensalidade, +${fmt(PSYCHIATRIC_FOLLOWUP_FEE)}/mês)`);
+  } else {
+    extraItems.push(`Acompanhamento psiquiátrico (+${fmt(PSYCHIATRIC_FOLLOWUP_FEE)}/mês, sob solicitação)`);
+  }
+
+  if (quote.laundryIncluded) {
+    includedItems.push(`Lavanderia (já inclusa na mensalidade, +${fmt(LAUNDRY_FEE)}/mês)`);
+  } else {
+    extraItems.push(`Lavanderia (+${fmt(LAUNDRY_FEE)}/mês, sob solicitação)`);
+  }
 
   const listColW = (pw - marginX * 2 - 8) / 2;
   const listX = [marginX, marginX + listColW + 8];
   const lists = [
-    { title: "INCLUSO NA MENSALIDADE", items: INCLUDED_ITEMS, color: BROWN },
-    { title: "COBRADO À PARTE", items: EXTRA_ITEMS, color: MUTED },
+    { title: "INCLUSO NA MENSALIDADE", items: includedItems, color: BROWN },
+    { title: "COBRADO À PARTE", items: extraItems, color: MUTED },
   ];
 
   let maxListY = y;
