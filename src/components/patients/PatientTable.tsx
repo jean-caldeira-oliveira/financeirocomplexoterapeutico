@@ -83,7 +83,7 @@ export function PatientTable({
             <TableHead>Nome</TableHead>
             <TableHead>Ala</TableHead>
             <TableHead>Entrada</TableHead>
-            <TableHead>Saída</TableHead>
+            <TableHead>Vencimento Última Parcela</TableHead>
             <TableHead>Vencimento</TableHead>
             <TableHead>Mensalidade</TableHead>
             <TableHead>Responsável</TableHead>
