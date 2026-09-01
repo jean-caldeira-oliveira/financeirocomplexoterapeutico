@@ -40,6 +40,7 @@ import {
   UserCog,
   Users,
   Wallet,
+  Wallet2,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
@@ -56,11 +57,18 @@ interface NavEntry extends NavItem {
 
 const navItems: NavEntry[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard },
-  { to: "/pacientes", label: "Pacientes", icon: Users },
-  { to: "/cobrancas", label: "Cobranças", icon: Receipt },
-  { to: "/contas", label: "Contas", icon: FileText },
-  { to: "/fornecedores", label: "Fornecedores", icon: Truck },
-  { to: "/colaboradores", label: "Colaboradores", icon: UserCog },
+  {
+    to: "/financeiro",
+    label: "Financeiro",
+    icon: Wallet2,
+    subItems: [
+      { to: "/pacientes", label: "Pacientes", icon: Users },
+      { to: "/cobrancas", label: "Cobranças", icon: Receipt },
+      { to: "/contas", label: "Contas", icon: FileText },
+      { to: "/fornecedores", label: "Fornecedores", icon: Truck },
+      { to: "/colaboradores", label: "Colaboradores", icon: UserCog },
+    ],
+  },
   {
     to: "/comercial",
     label: "Comercial",
@@ -183,6 +191,11 @@ export function AppSidebar() {
                                   <Link to={sub.to}>
                                     <sub.icon />
                                     <span>{sub.label}</span>
+                                    {sub.to === "/pacientes" && noContractCount > 0 && (
+                                      <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white">
+                                        {noContractCount}
+                                      </span>
+                                    )}
                                     {sub.badge && (
                                       <span
                                         className={`ml-auto whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white ${
