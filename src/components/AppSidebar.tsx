@@ -11,7 +11,11 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { useAuth } from "@/hooks/useAuth";
+import { useInvoices } from "@/hooks/useInvoices";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
+import { usePatients } from "@/hooks/usePatients";
+import { isContractFinished } from "@/utils/patientContract";
+import { useMemo } from "react";
 import {
   BarChart3,
   FileText,
@@ -54,6 +58,13 @@ export function AppSidebar() {
   const { signOut } = useAuth();
   const { isAdmin } = useIsAdmin();
   const location = useLocation();
+  const { patients } = usePatients();
+  const { invoices } = useInvoices();
+
+  const noContractCount = useMemo(
+    () => patients.filter((p) => isContractFinished(p, invoices)).length,
+    [patients, invoices]
+  );
 
   return (
     <Sidebar collapsible="icon">
@@ -89,6 +100,11 @@ export function AppSidebar() {
                     <Link to={item.to}>
                       <item.icon />
                       <span>{item.label}</span>
+                      {item.to === "/pacientes" && noContractCount > 0 && (
+                        <span className="ml-auto flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-none text-white group-data-[collapsible=icon]:hidden">
+                          {noContractCount}
+                        </span>
+                      )}
                       {item.badge && (
                         <span
                           className={`ml-auto whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white group-data-[collapsible=icon]:hidden ${

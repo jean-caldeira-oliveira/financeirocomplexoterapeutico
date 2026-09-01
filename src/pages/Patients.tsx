@@ -332,11 +332,11 @@ const Patients = () => {
               </span>
               <span className="font-bold">{patientsByWard.masculina}</span>
             </Badge>
-            <Badge variant="outline" className="gap-2 border-amber-500/50 py-2">
+            <Badge variant="outline" className="gap-2 border-red-500/50 py-2">
               <span className="font-normal text-muted-foreground">
-                Contratos Finalizados:
+                Sem Contrato:
               </span>
-              <span className="font-bold text-amber-600">
+              <span className="font-bold text-red-600">
                 {contractFinishedCount}
               </span>
             </Badge>
@@ -366,7 +366,7 @@ const Patients = () => {
                 <SelectItem value="active">Ativos</SelectItem>
                 <SelectItem value="inactive">Inativos</SelectItem>
                 <SelectItem value="contract_finished">
-                  Contrato Finalizado
+                  Sem Contrato
                 </SelectItem>
               </SelectContent>
             </Select>

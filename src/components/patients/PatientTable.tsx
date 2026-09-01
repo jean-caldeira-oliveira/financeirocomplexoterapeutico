@@ -117,8 +117,8 @@ export function PatientTable({
                     {finished && (
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Badge className="bg-amber-500 hover:bg-amber-600 text-white">
-                            Contrato Finalizado
+                          <Badge className="bg-red-500 hover:bg-red-600 text-white">
+                            Sem Contrato
                           </Badge>
                         </TooltipTrigger>
                         <TooltipContent>
