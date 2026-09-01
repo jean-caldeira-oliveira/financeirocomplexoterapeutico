@@ -66,6 +66,7 @@ const navItems: NavEntry[] = [
     label: "Comercial",
     icon: BriefcaseBusiness,
     subItems: [
+      { to: "/comercial/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { to: "/orcamento", label: "Orçamentos", icon: Wallet },
       { to: "/marketing", label: "Marketing", icon: Megaphone, badge: "Em construção" },
     ],

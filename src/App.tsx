@@ -18,6 +18,7 @@ const Bills = lazy(() => import("./pages/Bills"));
 const Reports = lazy(() => import("./pages/Reports"));
 const Fornecedores = lazy(() => import("./pages/Fornecedores"));
 const Colaboradores = lazy(() => import("./pages/Colaboradores"));
+const DashboardComercial = lazy(() => import("./pages/DashboardComercial"));
 const Orcamento = lazy(() => import("./pages/Orcamento"));
 const Marketing = lazy(() => import("./pages/Marketing"));
 const Auth = lazy(() => import("./pages/Auth"));
@@ -135,6 +136,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Colaboradores />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/comercial/dashboard"
+              element={
+                <ProtectedRoute>
+                  <DashboardComercial />
                 </ProtectedRoute>
               }
             />
