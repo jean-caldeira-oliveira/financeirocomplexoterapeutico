@@ -1,4 +1,5 @@
-import { Badge } from '@/components/ui/badge';
+import { TicketColumn } from '@/components/support/TicketColumn';
+import { TicketDetailsDialog } from '@/components/support/TicketDetailsDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -10,41 +11,108 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
+import { useIsAdmin } from '@/hooks/useIsAdmin';
+import { useSupportTickets } from '@/hooks/useSupportTickets';
+import {
+  SupportTicket,
+  TicketSeverity,
+  TicketStatus,
+  TicketType,
+  ticketSeverityLabels,
+  ticketStatusLabels,
+  ticketTabLabels,
+  ticketTypeLabels,
+} from '@/types/supportTicket';
+import {
+  DndContext,
+  DragEndEvent,
+  DragOverlay,
+  DragStartEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
 import { LifeBuoy, Send } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { TicketCard } from '@/components/support/TicketCard';
 
-const ticketTypeOptions = [
-  { value: 'nova-funcionalidade', label: 'Nova Funcionalidade' },
-  { value: 'correcao-bug', label: 'Correção de Bug' },
-  { value: 'duvida', label: 'Dúvida' },
-  { value: 'ajuste', label: 'Ajuste' },
-];
-
-const severityOptions = [
-  { value: 'bloqueio', label: 'Bloqueio' },
-  { value: 'alta', label: 'Alta Prioridade' },
-  { value: 'media', label: 'Média Prioridade' },
-  { value: 'baixa', label: 'Baixa Prioridade' },
-];
-
-const tabOptions = [
-  { value: 'geral', label: 'Geral / Outro' },
-  { value: 'dashboard', label: 'Dashboard' },
-  { value: 'pacientes', label: 'Pacientes' },
-  { value: 'cobrancas', label: 'Cobranças' },
-  { value: 'contas', label: 'Contas' },
-  { value: 'relatorios', label: 'Relatórios' },
-  { value: 'admin', label: 'Admin' },
-  { value: 'logs', label: 'Logs' },
-];
-
-const kanbanColumns = [
-  { key: 'triagem', label: 'Triagem' },
-  { key: 'em-desenvolvimento', label: 'Em Desenvolvimento' },
-  { key: 'validacao', label: 'Validação' },
-  { key: 'concluido', label: 'Concluído' },
+const kanbanColumns: { status: TicketStatus; label: string }[] = [
+  { status: 'triagem', label: ticketStatusLabels.triagem },
+  { status: 'em_desenvolvimento', label: ticketStatusLabels.em_desenvolvimento },
+  { status: 'validacao', label: ticketStatusLabels.validacao },
+  { status: 'concluido', label: ticketStatusLabels.concluido },
 ];
 
 export default function Support() {
+  const { isAdmin } = useIsAdmin();
+  const { tickets, createTicket, updateTicketStatus } = useSupportTickets();
+
+  const [ticketType, setTicketType] = useState<TicketType | ''>('');
+  const [severity, setSeverity] = useState<TicketSeverity | ''>('');
+  const [tab, setTab] = useState('');
+  const [description, setDescription] = useState('');
+
+  const [selectedTicket, setSelectedTicket] = useState<SupportTicket | null>(null);
+  const [activeTicket, setActiveTicket] = useState<SupportTicket | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+  );
+
+  const ticketsByStatus = useMemo(() => {
+    const map: Record<TicketStatus, SupportTicket[]> = {
+      triagem: [],
+      em_desenvolvimento: [],
+      validacao: [],
+      concluido: [],
+    };
+    for (const ticket of tickets) {
+      map[ticket.status]?.push(ticket);
+    }
+    return map;
+  }, [tickets]);
+
+  const isFormValid = ticketType && severity && tab && description.trim().length > 0;
+
+  const handleSubmit = () => {
+    if (!ticketType || !severity || !tab || !description.trim()) return;
+
+    createTicket.mutate(
+      { ticketType, severity, tab, description: description.trim() },
+      {
+        onSuccess: () => {
+          setTicketType('');
+          setSeverity('');
+          setTab('');
+          setDescription('');
+        },
+      }
+    );
+  };
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const ticket = tickets.find((t) => t.id === event.active.id);
+    setActiveTicket(ticket ?? null);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveTicket(null);
+    const { active, over } = event;
+    if (!over) return;
+
+    const ticket = tickets.find((t) => t.id === active.id);
+    if (!ticket) return;
+
+    const overColumn = kanbanColumns.find((c) => c.status === over.id);
+    const targetStatus = overColumn
+      ? overColumn.status
+      : tickets.find((t) => t.id === over.id)?.status;
+
+    if (!targetStatus || targetStatus === ticket.status) return;
+
+    updateTicketStatus.mutate({ id: ticket.id, status: targetStatus });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-50 border-b border-border bg-card/80 px-4 py-6 backdrop-blur-lg">
@@ -73,14 +141,14 @@ export default function Support() {
             <div className="grid gap-5 sm:grid-cols-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Tipo de Chamado</Label>
-                <Select>
+                <Select value={ticketType} onValueChange={(v) => setTicketType(v as TicketType)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o tipo" />
                   </SelectTrigger>
                   <SelectContent className="bg-popover">
-                    {ticketTypeOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
+                    {(Object.keys(ticketTypeLabels) as TicketType[]).map((key) => (
+                      <SelectItem key={key} value={key}>
+                        {ticketTypeLabels[key]}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -89,14 +157,14 @@ export default function Support() {
 
               <div className="space-y-1.5">
                 <Label className="text-xs">Severidade</Label>
-                <Select>
+                <Select value={severity} onValueChange={(v) => setSeverity(v as TicketSeverity)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a severidade" />
                   </SelectTrigger>
                   <SelectContent className="bg-popover">
-                    {severityOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
+                    {(Object.keys(ticketSeverityLabels) as TicketSeverity[]).map((key) => (
+                      <SelectItem key={key} value={key}>
+                        {ticketSeverityLabels[key]}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -105,14 +173,14 @@ export default function Support() {
 
               <div className="space-y-1.5">
                 <Label className="text-xs">Aba</Label>
-                <Select>
+                <Select value={tab} onValueChange={setTab}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione a aba relacionada" />
                   </SelectTrigger>
                   <SelectContent className="bg-popover">
-                    {tabOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
+                    {Object.entries(ticketTabLabels).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>
+                        {label}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -131,11 +199,13 @@ export default function Support() {
                 placeholder="Descreva aqui o passo a passo, a solicitação ou a dúvida..."
                 rows={6}
                 className="resize-none"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
               />
             </div>
 
             <div className="flex justify-end pt-2">
-              <Button type="button">
+              <Button type="button" onClick={handleSubmit} disabled={!isFormValid || createTicket.isPending}>
                 <Send className="mr-2 h-4 w-4" />
                 Enviar Chamado
               </Button>
@@ -144,26 +214,37 @@ export default function Support() {
         </Card>
 
         <div>
-          <h2 className="mb-4 text-sm font-semibold text-muted-foreground">
-            Acompanhamento de Chamados
-          </h2>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {kanbanColumns.map((column) => (
-              <div key={column.key} className="rounded-lg border bg-card">
-                <div className="flex items-center justify-between border-b px-4 py-3">
-                  <span className="text-sm font-semibold">{column.label}</span>
-                  <Badge variant="secondary">0</Badge>
-                </div>
-                <div className="flex min-h-[200px] flex-col gap-2 p-3">
-                  <div className="flex flex-1 items-center justify-center rounded-md border border-dashed p-6 text-center text-xs text-muted-foreground">
-                    Nenhum chamado
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-muted-foreground">
+              Acompanhamento de Chamados
+            </h2>
+            {!isAdmin && (
+              <span className="text-xs text-muted-foreground">
+                Somente administradores podem mover os chamados entre as colunas
+              </span>
+            )}
           </div>
+
+          <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {kanbanColumns.map((column) => (
+                <TicketColumn
+                  key={column.status}
+                  status={column.status}
+                  label={column.label}
+                  tickets={ticketsByStatus[column.status]}
+                  onTicketClick={setSelectedTicket}
+                />
+              ))}
+            </div>
+            <DragOverlay>
+              {activeTicket && <TicketCard ticket={activeTicket} onClick={() => {}} />}
+            </DragOverlay>
+          </DndContext>
         </div>
       </main>
+
+      <TicketDetailsDialog ticket={selectedTicket} onOpenChange={(open) => !open && setSelectedTicket(null)} />
     </div>
   );
 }

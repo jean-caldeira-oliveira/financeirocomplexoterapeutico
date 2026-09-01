@@ -469,6 +469,77 @@ export type Database = {
         };
         Relationships: [];
       };
+      support_ticket_comments: {
+        Row: {
+          comment: string;
+          created_at: string;
+          id: string;
+          ticket_id: string;
+          user_id: string;
+          user_name: string | null;
+        };
+        Insert: {
+          comment: string;
+          created_at?: string;
+          id?: string;
+          ticket_id: string;
+          user_id: string;
+          user_name?: string | null;
+        };
+        Update: {
+          comment?: string;
+          created_at?: string;
+          id?: string;
+          ticket_id?: string;
+          user_id?: string;
+          user_name?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "support_ticket_comments_ticket_id_fkey";
+            columns: ["ticket_id"];
+            isOneToOne: false;
+            referencedRelation: "support_tickets";
+            referencedColumns: ["id"];
+          }
+        ];
+      };
+      support_tickets: {
+        Row: {
+          created_at: string;
+          description: string;
+          id: string;
+          severity: string;
+          status: string;
+          tab: string;
+          ticket_type: string;
+          user_id: string;
+          user_name: string | null;
+        };
+        Insert: {
+          created_at?: string;
+          description: string;
+          id?: string;
+          severity: string;
+          status?: string;
+          tab: string;
+          ticket_type: string;
+          user_id: string;
+          user_name?: string | null;
+        };
+        Update: {
+          created_at?: string;
+          description?: string;
+          id?: string;
+          severity?: string;
+          status?: string;
+          tab?: string;
+          ticket_type?: string;
+          user_id?: string;
+          user_name?: string | null;
+        };
+        Relationships: [];
+      };
       transactions: {
         Row: {
           amount: number;
