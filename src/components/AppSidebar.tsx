@@ -18,10 +18,14 @@ import {
   LayoutDashboard,
   LifeBuoy,
   LogOut,
+  Megaphone,
   Receipt,
   ScrollText,
   Shield,
+  Truck,
+  UserCog,
   Users,
+  Wallet,
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 
@@ -31,6 +35,10 @@ const navItems = [
   { to: "/cobrancas", label: "Cobranças", icon: Receipt },
   { to: "/contas", label: "Contas", icon: FileText },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3, badge: "Em Refinamento" },
+  { to: "/fornecedores", label: "Fornecedores", icon: Truck, badge: "Em construção" },
+  { to: "/colaboradores", label: "Colaboradores", icon: UserCog, badge: "Em construção" },
+  { to: "/orcamento", label: "Orçamento", icon: Wallet, badge: "Em construção" },
+  { to: "/marketing", label: "Marketing", icon: Megaphone, badge: "Em construção" },
 ];
 
 const supportNavItems = [

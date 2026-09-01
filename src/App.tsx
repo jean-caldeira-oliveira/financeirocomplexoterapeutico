@@ -16,6 +16,10 @@ const Patients = lazy(() => import("./pages/Patients"));
 const Invoices = lazy(() => import("./pages/Invoices"));
 const Bills = lazy(() => import("./pages/Bills"));
 const Reports = lazy(() => import("./pages/Reports"));
+const Fornecedores = lazy(() => import("./pages/Fornecedores"));
+const Colaboradores = lazy(() => import("./pages/Colaboradores"));
+const Orcamento = lazy(() => import("./pages/Orcamento"));
+const Marketing = lazy(() => import("./pages/Marketing"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Support = lazy(() => import("./pages/Support"));
@@ -115,6 +119,38 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Reports />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/fornecedores"
+              element={
+                <ProtectedRoute>
+                  <Fornecedores />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/colaboradores"
+              element={
+                <ProtectedRoute>
+                  <Colaboradores />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/orcamento"
+              element={
+                <ProtectedRoute>
+                  <Orcamento />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/marketing"
+              element={
+                <ProtectedRoute>
+                  <Marketing />
                 </ProtectedRoute>
               }
             />
