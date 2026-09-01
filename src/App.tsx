@@ -21,6 +21,10 @@ const Colaboradores = lazy(() => import("./pages/Colaboradores"));
 const DashboardComercial = lazy(() => import("./pages/DashboardComercial"));
 const Orcamento = lazy(() => import("./pages/Orcamento"));
 const Marketing = lazy(() => import("./pages/Marketing"));
+const Juridico = lazy(() => import("./pages/Juridico"));
+const RH = lazy(() => import("./pages/RH"));
+const Lavanderia = lazy(() => import("./pages/Lavanderia"));
+const Cantina = lazy(() => import("./pages/Cantina"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Support = lazy(() => import("./pages/Support"));
@@ -160,6 +164,38 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Marketing />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/juridico"
+              element={
+                <ProtectedRoute>
+                  <Juridico />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/rh"
+              element={
+                <ProtectedRoute>
+                  <RH />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/lavanderia"
+              element={
+                <ProtectedRoute>
+                  <Lavanderia />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/cantina"
+              element={
+                <ProtectedRoute>
+                  <Cantina />
                 </ProtectedRoute>
               }
             />

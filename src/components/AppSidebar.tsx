@@ -34,11 +34,15 @@ import {
   LogOut,
   Megaphone,
   Receipt,
+  Scale,
   ScrollText,
   Shield,
+  Shirt,
   Truck,
   UserCog,
   Users,
+  Users2,
+  UtensilsCrossed,
   Wallet,
   Wallet2,
 } from "lucide-react";
@@ -79,6 +83,10 @@ const navItems: NavEntry[] = [
       { to: "/marketing", label: "Marketing", icon: Megaphone, badge: "Em construção" },
     ],
   },
+  { to: "/juridico", label: "Jurídico", icon: Scale, badge: "Em construção" },
+  { to: "/rh", label: "RH", icon: Users2, badge: "Em construção" },
+  { to: "/lavanderia", label: "Lavanderia", icon: Shirt, badge: "Em construção" },
+  { to: "/cantina", label: "Cantina", icon: UtensilsCrossed, badge: "Em construção" },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3, badge: "Em Refinamento" },
 ];
 
