@@ -15,6 +15,7 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import {
   BarChart3,
   FileText,
+  LayoutDashboard,
   LogOut,
   Receipt,
   ScrollText,
@@ -24,6 +25,7 @@ import {
 import { Link, useLocation } from "react-router-dom";
 
 const navItems = [
+  { to: "/", label: "Dashboard", icon: LayoutDashboard },
   { to: "/pacientes", label: "Pacientes", icon: Users },
   { to: "/cobrancas", label: "Cobranças", icon: Receipt },
   { to: "/contas", label: "Contas", icon: FileText },
