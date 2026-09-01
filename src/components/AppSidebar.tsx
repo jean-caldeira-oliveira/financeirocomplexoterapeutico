@@ -47,6 +47,7 @@ import {
   ScrollText,
   Shield,
   Shirt,
+  Tag,
   Truck,
   UserCog,
   Users,
@@ -139,6 +140,7 @@ function buildNavItems(isAdmin: boolean): NavEntry[] {
     icon: Wrench,
     subItems: [
       { to: "/suporte", label: "Chamados", icon: LifeBuoy },
+      { to: "/ti/versoes", label: "Versões", icon: Tag, badge: "Em construção" },
       ...(isAdmin
         ? [
             { to: "/admin", label: "Permissões", icon: Shield },

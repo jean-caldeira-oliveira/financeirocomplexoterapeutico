@@ -39,6 +39,7 @@ const Cantina = lazy(() => import("./pages/Cantina"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Support = lazy(() => import("./pages/Support"));
+const Versoes = lazy(() => import("./pages/ti/Versoes"));
 const AuditLog = lazy(() => import("./pages/AuditLog"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -304,6 +305,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Support />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ti/versoes"
+              element={
+                <ProtectedRoute>
+                  <Versoes />
                 </ProtectedRoute>
               }
             />
