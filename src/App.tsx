@@ -23,6 +23,7 @@ const Orcamento = lazy(() => import("./pages/Orcamento"));
 const Marketing = lazy(() => import("./pages/Marketing"));
 const Leads = lazy(() => import("./pages/Leads"));
 const Juridico = lazy(() => import("./pages/Juridico"));
+const RH = lazy(() => import("./pages/RH"));
 const RHDashboard = lazy(() => import("./pages/rh/RHDashboard"));
 const RHColaboradores = lazy(() => import("./pages/rh/RHColaboradores"));
 const Escala = lazy(() => import("./pages/rh/Escala"));
@@ -193,6 +194,14 @@ const App = () => (
             />
             <Route
               path="/rh"
+              element={
+                <ProtectedRoute>
+                  <RH />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/rh/dashboard"
               element={
                 <ProtectedRoute>
                   <RHDashboard />
