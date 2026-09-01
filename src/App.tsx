@@ -22,7 +22,9 @@ const DashboardComercial = lazy(() => import("./pages/DashboardComercial"));
 const Orcamento = lazy(() => import("./pages/Orcamento"));
 const Marketing = lazy(() => import("./pages/Marketing"));
 const Leads = lazy(() => import("./pages/Leads"));
-const Juridico = lazy(() => import("./pages/Juridico"));
+const JuridicoDashboard = lazy(() => import("./pages/juridico/JuridicoDashboard"));
+const Ativos = lazy(() => import("./pages/juridico/Ativos"));
+const Passivos = lazy(() => import("./pages/juridico/Passivos"));
 const RH = lazy(() => import("./pages/RH"));
 const RHDashboard = lazy(() => import("./pages/rh/RHDashboard"));
 const RHColaboradores = lazy(() => import("./pages/rh/RHColaboradores"));
@@ -184,11 +186,28 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
+            <Route path="/juridico" element={<Navigate to="/juridico/dashboard" replace />} />
             <Route
-              path="/juridico"
+              path="/juridico/dashboard"
               element={
                 <ProtectedRoute>
-                  <Juridico />
+                  <JuridicoDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/juridico/ativos"
+              element={
+                <ProtectedRoute>
+                  <Ativos />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/juridico/passivos"
+              element={
+                <ProtectedRoute>
+                  <Passivos />
                 </ProtectedRoute>
               }
             />

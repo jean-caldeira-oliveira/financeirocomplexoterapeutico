@@ -2,7 +2,7 @@ import { LegalDashboard } from "@/components/legal/LegalDashboard";
 import { Badge } from "@/components/ui/badge";
 import { Scale } from "lucide-react";
 
-export default function Juridico() {
+export default function JuridicoDashboard() {
   return (
     <div className="p-6">
       <div className="mb-6 flex items-center gap-3">

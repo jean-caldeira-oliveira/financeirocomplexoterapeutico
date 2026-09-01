@@ -25,6 +25,8 @@ import { usePatients } from "@/hooks/usePatients";
 import { isContractFinished } from "@/utils/patientContract";
 import { useMemo, useState } from "react";
 import {
+  ArrowDownToLine,
+  ArrowUpFromLine,
   BarChart3,
   BriefcaseBusiness,
   CalendarRange,
@@ -90,7 +92,17 @@ const navItems: NavEntry[] = [
       { to: "/comercial/leads", label: "Leads", icon: Contact },
     ],
   },
-  { to: "/juridico", label: "Jurídico", icon: Scale, badge: "Em construção" },
+  {
+    to: "/juridico",
+    label: "Jurídico",
+    icon: Scale,
+    badge: "Em construção",
+    subItems: [
+      { to: "/juridico/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { to: "/juridico/ativos", label: "Ativos", icon: ArrowUpFromLine },
+      { to: "/juridico/passivos", label: "Passivos", icon: ArrowDownToLine },
+    ],
+  },
   {
     to: "/rh",
     label: "RH",
