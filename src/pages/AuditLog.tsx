@@ -3,6 +3,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -22,8 +31,10 @@ import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { ArrowLeft, ScrollText, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
+
+const PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const;
 
 // ── Label maps ────────────────────────────────────────────────────────────────
 
@@ -85,6 +96,8 @@ const AuditLog = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [moduleFilter, setModuleFilter] = useState<string>("todos");
   const [actionFilter, setActionFilter] = useState<string>("todos");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState<number>(PAGE_SIZE_OPTIONS[1]);
 
   const { logs, isLoading } = useAuditLog(selectedMonth);
 
@@ -111,6 +124,38 @@ const AuditLog = () => {
       return matchesModule && matchesAction && matchesSearch;
     });
   }, [logs, moduleFilter, actionFilter, searchQuery]);
+
+  // Reset to page 1 whenever the underlying result set or page size changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedMonth, moduleFilter, actionFilter, searchQuery, pageSize]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredLogs.length / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+
+  const paginatedLogs = useMemo(() => {
+    const start = (safePage - 1) * pageSize;
+    return filteredLogs.slice(start, start + pageSize);
+  }, [filteredLogs, safePage, pageSize]);
+
+  const pageNumbers = useMemo(() => {
+    const pages: (number | "ellipsis")[] = [];
+    const delta = 1;
+
+    for (let i = 1; i <= totalPages; i++) {
+      if (
+        i === 1 ||
+        i === totalPages ||
+        (i >= safePage - delta && i <= safePage + delta)
+      ) {
+        pages.push(i);
+      } else if (pages[pages.length - 1] !== "ellipsis") {
+        pages.push("ellipsis");
+      }
+    }
+
+    return pages;
+  }, [totalPages, safePage]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -185,17 +230,42 @@ const AuditLog = () => {
         </div>
 
         {/* Summary */}
-        <p className="mb-3 text-sm text-muted-foreground">
-          {isLoading
-            ? "Carregando..."
-            : `${filteredLogs.length} registro${
-                filteredLogs.length !== 1 ? "s" : ""
-              } encontrado${filteredLogs.length !== 1 ? "s" : ""} em ${format(
-                selectedMonth,
-                "MMMM 'de' yyyy",
-                { locale: ptBR }
-              )}`}
-        </p>
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm text-muted-foreground">
+            {isLoading
+              ? "Carregando..."
+              : `${filteredLogs.length} registro${
+                  filteredLogs.length !== 1 ? "s" : ""
+                } encontrado${filteredLogs.length !== 1 ? "s" : ""} em ${format(
+                  selectedMonth,
+                  "MMMM 'de' yyyy",
+                  {
+                    locale: ptBR,
+                  },
+                )}`}
+          </p>
+
+          {!isLoading && filteredLogs.length > 0 && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <span>Itens por página:</span>
+              <Select
+                value={String(pageSize)}
+                onValueChange={(v) => setPageSize(Number(v))}
+              >
+                <SelectTrigger className="h-8 w-[80px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAGE_SIZE_OPTIONS.map((size) => (
+                    <SelectItem key={size} value={String(size)}>
+                      {size}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
 
         {/* Table */}
         <div className="rounded-lg border border-border bg-card overflow-hidden">
@@ -236,7 +306,7 @@ const AuditLog = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredLogs.map((log) => (
+                  paginatedLogs.map((log) => (
                     <TableRow
                       key={log.id}
                       className="hover:bg-muted/30 transition-colors"
@@ -245,7 +315,7 @@ const AuditLog = () => {
                         {format(
                           new Date(log.createdAt),
                           "dd/MM/yyyy HH:mm:ss",
-                          { locale: ptBR }
+                          { locale: ptBR },
                         )}
                       </TableCell>
                       <TableCell>
@@ -266,8 +336,8 @@ const AuditLog = () => {
                           className="text-xs"
                         >
                           {log.appModule
-                            ? moduleLabels[log.appModule] ?? log.appModule
-                            : log.tableName ?? "—"}
+                            ? (moduleLabels[log.appModule] ?? log.appModule)
+                            : (log.tableName ?? "—")}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -278,8 +348,8 @@ const AuditLog = () => {
                           className="text-xs"
                         >
                           {log.appAction
-                            ? actionLabels[log.appAction] ?? log.appAction
-                            : log.operation ?? "—"}
+                            ? (actionLabels[log.appAction] ?? log.appAction)
+                            : (log.operation ?? "—")}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-sm">
@@ -312,6 +382,62 @@ const AuditLog = () => {
             </Table>
           </div>
         </div>
+
+        {/* Pagination */}
+        {!isLoading && filteredLogs.length > 0 && totalPages > 1 && (
+          <Pagination className="mt-4">
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (safePage > 1) setCurrentPage(safePage - 1);
+                  }}
+                  className={
+                    safePage <= 1 ? "pointer-events-none opacity-50" : ""
+                  }
+                />
+              </PaginationItem>
+
+              {pageNumbers.map((page, idx) =>
+                page === "ellipsis" ? (
+                  <PaginationItem key={`ellipsis-${idx}`}>
+                    <PaginationEllipsis />
+                  </PaginationItem>
+                ) : (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      href="#"
+                      isActive={page === safePage}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setCurrentPage(page);
+                      }}
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                ),
+              )}
+
+              <PaginationItem>
+                <PaginationNext
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    if (safePage < totalPages) setCurrentPage(safePage + 1);
+                  }}
+                  className={
+                    safePage >= totalPages
+                      ? "pointer-events-none opacity-50"
+                      : ""
+                  }
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        )}
 
         {/* Footer note */}
         <p className="mt-4 text-xs text-muted-foreground text-center">
