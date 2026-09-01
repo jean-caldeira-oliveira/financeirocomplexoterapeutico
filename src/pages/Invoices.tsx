@@ -32,6 +32,8 @@ import {
 } from "@/components/ui/tooltip";
 import { useInvoices } from "@/hooks/useInvoices";
 import { usePatients } from "@/hooks/usePatients";
+import { usePagination } from "@/hooks/usePagination";
+import { TablePagination } from "@/components/ui/table-pagination";
 import {
   InvoiceStatus,
   billingMethodLabels,
@@ -145,6 +147,15 @@ const Invoices = () => {
         (a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()
       );
   }, [invoices, selectedMonth, searchQuery, statusFilters, typeFilters]);
+
+  const {
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    pageCount,
+    paginatedItems: paginatedInvoices,
+  } = usePagination(filteredInvoices, 25);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -414,7 +425,7 @@ const Invoices = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredInvoices.map((invoice) => {
+                  {paginatedInvoices.map((invoice) => {
                     const payments = invoice.payments ?? [];
                     const isExpanded = expandedInvoices.has(invoice.id);
                     const hasPayments = payments.length > 0;
@@ -739,6 +750,14 @@ const Invoices = () => {
               </Table>
             </TooltipProvider>
           )}
+          <TablePagination
+            page={page}
+            pageCount={pageCount}
+            pageSize={pageSize}
+            totalItems={filteredInvoices.length}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </div>
       </main>
     </div>

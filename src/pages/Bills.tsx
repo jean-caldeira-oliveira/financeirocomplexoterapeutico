@@ -45,6 +45,8 @@ import {
 } from "@/components/ui/tooltip";
 import { useBills } from "@/hooks/useBills";
 import { useCustomCategories } from "@/hooks/useCustomCategories";
+import { usePagination } from "@/hooks/usePagination";
+import { TablePagination } from "@/components/ui/table-pagination";
 import {
   Bill,
   BillRecurrence,
@@ -164,6 +166,15 @@ const Bills = () => {
     categoryFilters,
     subcategoryFilters,
   ]);
+
+  const {
+    page,
+    setPage,
+    pageSize,
+    setPageSize,
+    pageCount,
+    paginatedItems: paginatedBills,
+  } = usePagination(filteredBills, 25);
 
   // Get available subcategories based on selected categories
   const availableSubcategories = useMemo(() => {
@@ -518,7 +529,7 @@ const Bills = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredBills.map((bill) => (
+                  {paginatedBills.map((bill) => (
                     <TableRow
                       key={bill.id}
                       className="cursor-pointer hover:bg-muted/30"
@@ -702,6 +713,14 @@ const Bills = () => {
               </Table>
             </TooltipProvider>
           )}
+          <TablePagination
+            page={page}
+            pageCount={pageCount}
+            pageSize={pageSize}
+            totalItems={filteredBills.length}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
         </div>
       </main>
 
