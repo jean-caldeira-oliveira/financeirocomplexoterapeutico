@@ -30,7 +30,7 @@ const navItems = [
   { to: "/pacientes", label: "Pacientes", icon: Users },
   { to: "/cobrancas", label: "Cobranças", icon: Receipt },
   { to: "/contas", label: "Contas", icon: FileText },
-  { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
+  { to: "/relatorios", label: "Relatórios", icon: BarChart3, badge: "Em Refinamento" },
 ];
 
 const supportNavItems = [
@@ -81,6 +81,11 @@ export function AppSidebar() {
                     <Link to={item.to}>
                       <item.icon />
                       <span>{item.label}</span>
+                      {item.badge && (
+                        <span className="ml-auto whitespace-nowrap rounded-full bg-orange-500 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white group-data-[collapsible=icon]:hidden">
+                          {item.badge}
+                        </span>
+                      )}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
