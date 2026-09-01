@@ -33,6 +33,7 @@ import {
   ChevronRight,
   ClipboardList,
   Clock,
+  ConciergeBell,
   Contact,
   FileText,
   GraduationCap,
@@ -119,8 +120,16 @@ const navItems: NavEntry[] = [
       { to: "/rh/banco-de-talentos", label: "Banco de Talentos", icon: Users },
     ],
   },
-  { to: "/lavanderia", label: "Lavanderia", icon: Shirt, badge: "Em construção" },
-  { to: "/cantina", label: "Cantina", icon: UtensilsCrossed, badge: "Em construção" },
+  {
+    to: "/servicos",
+    label: "Serviços",
+    icon: ConciergeBell,
+    badge: "Em construção",
+    subItems: [
+      { to: "/lavanderia", label: "Lavanderia", icon: Shirt },
+      { to: "/cantina", label: "Cantina", icon: UtensilsCrossed },
+    ],
+  },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3, badge: "Em Refinamento" },
 ];
 
