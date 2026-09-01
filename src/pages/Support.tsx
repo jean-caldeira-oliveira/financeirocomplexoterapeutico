@@ -1,3 +1,4 @@
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -36,6 +37,13 @@ const tabOptions = [
   { value: 'logs', label: 'Logs' },
 ];
 
+const kanbanColumns = [
+  { key: 'triagem', label: 'Triagem' },
+  { key: 'em-desenvolvimento', label: 'Em Desenvolvimento' },
+  { key: 'validacao', label: 'Validação' },
+  { key: 'concluido', label: 'Concluído' },
+];
+
 export default function Support() {
   return (
     <div className="min-h-screen bg-background">
@@ -53,8 +61,8 @@ export default function Support() {
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        <Card className="mx-auto max-w-2xl">
+      <main className="container mx-auto space-y-8 px-4 py-8">
+        <Card className="w-full">
           <CardHeader>
             <CardTitle>Novo Chamado</CardTitle>
             <CardDescription>
@@ -62,7 +70,7 @@ export default function Support() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-5 sm:grid-cols-3">
               <div className="space-y-1.5">
                 <Label className="text-xs">Tipo de Chamado</Label>
                 <Select>
@@ -94,22 +102,22 @@ export default function Support() {
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            <div className="space-y-1.5">
-              <Label className="text-xs">Aba</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione a aba relacionada" />
-                </SelectTrigger>
-                <SelectContent className="bg-popover">
-                  {tabOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Aba</Label>
+                <Select>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione a aba relacionada" />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover">
+                    {tabOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             <div className="space-y-1.5">
@@ -134,6 +142,27 @@ export default function Support() {
             </div>
           </CardContent>
         </Card>
+
+        <div>
+          <h2 className="mb-4 text-sm font-semibold text-muted-foreground">
+            Acompanhamento de Chamados
+          </h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {kanbanColumns.map((column) => (
+              <div key={column.key} className="rounded-lg border bg-card">
+                <div className="flex items-center justify-between border-b px-4 py-3">
+                  <span className="text-sm font-semibold">{column.label}</span>
+                  <Badge variant="secondary">0</Badge>
+                </div>
+                <div className="flex min-h-[200px] flex-col gap-2 p-3">
+                  <div className="flex flex-1 items-center justify-center rounded-md border border-dashed p-6 text-center text-xs text-muted-foreground">
+                    Nenhum chamado
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </main>
     </div>
   );
