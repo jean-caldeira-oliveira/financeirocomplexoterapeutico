@@ -26,6 +26,7 @@ import { isContractFinished } from "@/utils/patientContract";
 import { useMemo, useState } from "react";
 import {
   ArrowDownToLine,
+  ArrowLeftRight,
   ArrowUpFromLine,
   BarChart3,
   BriefcaseBusiness,
@@ -36,6 +37,7 @@ import {
   ConciergeBell,
   Contact,
   FileText,
+  FolderOpen,
   GraduationCap,
   LayoutDashboard,
   LifeBuoy,
@@ -83,6 +85,7 @@ function buildNavItems(isAdmin: boolean): NavEntry[] {
       { to: "/contas", label: "Contas", icon: FileText },
       { to: "/fornecedores", label: "Fornecedores", icon: Truck },
       { to: "/colaboradores", label: "Colaboradores", icon: UserCog },
+      { to: "/financeiro/conciliacao", label: "Conciliação", icon: ArrowLeftRight, badge: "Em construção" },
     ],
   },
   {
@@ -94,6 +97,7 @@ function buildNavItems(isAdmin: boolean): NavEntry[] {
       { to: "/orcamento", label: "Orçamentos", icon: Wallet },
       { to: "/marketing", label: "Marketing", icon: Megaphone, badge: "Em construção" },
       { to: "/comercial/leads", label: "Leads", icon: Contact },
+      { to: "/comercial/materiais-de-apoio", label: "Materiais de apoio", icon: FolderOpen, badge: "Em construção" },
     ],
   },
   {
