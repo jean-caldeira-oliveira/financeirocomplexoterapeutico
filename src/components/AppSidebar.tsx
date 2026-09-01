@@ -16,6 +16,7 @@ import {
   BarChart3,
   FileText,
   LayoutDashboard,
+  LifeBuoy,
   LogOut,
   Receipt,
   ScrollText,
@@ -30,6 +31,10 @@ const navItems = [
   { to: "/cobrancas", label: "Cobranças", icon: Receipt },
   { to: "/contas", label: "Contas", icon: FileText },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3 },
+];
+
+const supportNavItems = [
+  { to: "/suporte", label: "Suporte", icon: LifeBuoy },
 ];
 
 const adminNavItems = [
@@ -67,6 +72,27 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (
+                <SidebarMenuItem key={item.to}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location.pathname === item.to}
+                    tooltip={item.label}
+                  >
+                    <Link to={item.to}>
+                      <item.icon />
+                      <span>{item.label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {supportNavItems.map((item) => (
                 <SidebarMenuItem key={item.to}>
                   <SidebarMenuButton
                     asChild

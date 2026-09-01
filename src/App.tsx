@@ -18,6 +18,7 @@ const Bills = lazy(() => import("./pages/Bills"));
 const Reports = lazy(() => import("./pages/Reports"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Admin = lazy(() => import("./pages/Admin"));
+const Support = lazy(() => import("./pages/Support"));
 const AuditLog = lazy(() => import("./pages/AuditLog"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -114,6 +115,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Reports />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/suporte"
+              element={
+                <ProtectedRoute>
+                  <Support />
                 </ProtectedRoute>
               }
             />
