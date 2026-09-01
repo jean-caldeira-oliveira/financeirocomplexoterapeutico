@@ -41,6 +41,9 @@ export interface Bill {
   notes?: string;
   paymentNotes?: string;
   createdAt: string;
+  // Vínculo opcional com o cadastro de Fornecedor/Colaborador (mutuamente exclusivos)
+  supplierId?: string;
+  employeeId?: string;
   // Computed from bill_payments
   payments?: BillPayment[];
   totalPaid?: number;

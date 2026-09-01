@@ -15,12 +15,17 @@ tenta reaplicar objetos que já existem e falha (`already exists`).
 3. Depois de rodar com sucesso, avise para seguirmos com o próximo passo
    (ex.: gerar os tipos TypeScript a partir do schema atualizado).
 
-## Migration pendente agora
+## Migrations pendentes agora
 
-- `20260901040000_add_suppliers_employees.sql` — cria `cost_centers`,
-  `chart_of_accounts`, `suppliers`, `employees`, as colunas `supplier_id`/
-  `employee_id` em `bills`, e os triggers de proteção contra exclusão
-  quando há vínculo ativo.
+- ~~`20260901040000_add_suppliers_employees.sql`~~ — já aplicada.
+- `20260901050000_seed_chart_of_accounts.sql` — popula `chart_of_accounts`
+  com um conjunto mínimo de 20 contas (as 15 subcategorias de despesa já
+  usadas hoje em `bills.category`/`subcategory`, mais 3 contas específicas
+  citadas na especificação para Funcionário: Pró-labore, Honorários, Equipe
+  Técnica Clínica CLT). Sem isso, o campo "Conta Padrão" (obrigatório) fica
+  vazio e é impossível concluir um cadastro de Fornecedor/Funcionário.
+  Não migra lançamentos (`bills`) antigos — só popula o catálogo de contas
+  disponível para novos cadastros.
 
 ## Depois de rodar a migration
 

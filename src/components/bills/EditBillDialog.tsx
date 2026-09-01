@@ -18,9 +18,13 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useCustomCategories } from "@/hooks/useCustomCategories";
+import { useSuppliers } from "@/hooks/useSuppliers";
+import { useEmployees } from "@/hooks/useEmployees";
 import { Bill, BillEditScope } from "@/types/bill";
 import { CalendarDays, GitBranch, MessageSquare, Pencil } from "lucide-react";
 import { useEffect, useState } from "react";
+
+type LinkType = "none" | "supplier" | "employee";
 
 interface EditBillDialogProps {
   bill: Bill;
@@ -33,6 +37,8 @@ interface EditBillDialogProps {
       category?: string;
       subcategory?: string;
       notes?: string;
+      supplierId?: string;
+      employeeId?: string;
     },
     scope: BillEditScope
   ) => void;
@@ -69,6 +75,8 @@ const scopeOptions: {
 export function EditBillDialog({ bill, onSave }: EditBillDialogProps) {
   const { allGroupLabels, allSubcategoryLabels, allGroupSubcategories } =
     useCustomCategories();
+  const { activeSuppliers } = useSuppliers();
+  const { activeEmployees } = useEmployees();
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState<Step>("form");
 
@@ -83,6 +91,12 @@ export function EditBillDialog({ bill, onSave }: EditBillDialogProps) {
   const [notes, setNotes] = useState(bill.notes ?? "");
   const [selectedScope, setSelectedScope] =
     useState<BillEditScope>("only_this");
+  const [linkType, setLinkType] = useState<LinkType>(
+    bill.supplierId ? "supplier" : bill.employeeId ? "employee" : "none"
+  );
+  const [linkedId, setLinkedId] = useState<string>(
+    bill.supplierId ?? bill.employeeId ?? ""
+  );
 
   const currentSubs = allGroupSubcategories[categoryGroup] || [];
   const isSeries = !!bill.recurrenceGroupId;
@@ -97,6 +111,8 @@ export function EditBillDialog({ bill, onSave }: EditBillDialogProps) {
       setSubcategory(bill.subcategory);
       setNotes(bill.notes ?? "");
       setSelectedScope("only_this");
+      setLinkType(bill.supplierId ? "supplier" : bill.employeeId ? "employee" : "none");
+      setLinkedId(bill.supplierId ?? bill.employeeId ?? "");
     }
   }, [open, bill]);
 
@@ -119,6 +135,8 @@ export function EditBillDialog({ bill, onSave }: EditBillDialogProps) {
         category: categoryGroup,
         subcategory,
         notes: notes.trim() || undefined,
+        supplierId: linkType === "supplier" ? linkedId || undefined : undefined,
+        employeeId: linkType === "employee" ? linkedId || undefined : undefined,
       },
       scope
     );
@@ -169,6 +187,49 @@ export function EditBillDialog({ bill, onSave }: EditBillDialogProps) {
                     value={dueDate}
                     onChange={(e) => setDueDate(e.target.value)}
                   />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Vincular a Fornecedor/Colaborador (opcional)</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Select
+                    value={linkType}
+                    onValueChange={(v) => {
+                      setLinkType(v as LinkType);
+                      setLinkedId("");
+                    }}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover">
+                      <SelectItem value="none">Nenhum</SelectItem>
+                      <SelectItem value="supplier">Fornecedor</SelectItem>
+                      <SelectItem value="employee">Colaborador</SelectItem>
+                    </SelectContent>
+                  </Select>
+
+                  {linkType !== "none" && (
+                    <Select value={linkedId} onValueChange={setLinkedId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione..." />
+                      </SelectTrigger>
+                      <SelectContent className="bg-popover">
+                        {linkType === "supplier"
+                          ? activeSuppliers.map((s) => (
+                              <SelectItem key={s.id} value={s.id}>
+                                {s.legalName}
+                              </SelectItem>
+                            ))
+                          : activeEmployees.map((e) => (
+                              <SelectItem key={e.id} value={e.id}>
+                                {e.fullName}
+                              </SelectItem>
+                            ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
               </div>
 

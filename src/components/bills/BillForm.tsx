@@ -19,6 +19,8 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { AddBillData } from "@/hooks/useBills";
 import { useCustomCategories } from "@/hooks/useCustomCategories";
+import { useSuppliers } from "@/hooks/useSuppliers";
+import { useEmployees } from "@/hooks/useEmployees";
 import { BillRecurrence, billRecurrenceLabels } from "@/types/bill";
 import { Plus, RefreshCw } from "lucide-react";
 import { useState } from "react";
@@ -27,9 +29,13 @@ interface BillFormProps {
   onSubmit: (data: AddBillData) => void;
 }
 
+type LinkType = "none" | "supplier" | "employee";
+
 export function BillForm({ onSubmit }: BillFormProps) {
   const { allGroupLabels, allSubcategoryLabels, allGroupSubcategories } =
     useCustomCategories();
+  const { activeSuppliers } = useSuppliers();
+  const { activeEmployees } = useEmployees();
   const [open, setOpen] = useState(false);
   const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
@@ -44,6 +50,8 @@ export function BillForm({ onSubmit }: BillFormProps) {
   const [isInstallment, setIsInstallment] = useState(false);
   const [installments, setInstallments] = useState("2");
   const [notes, setNotes] = useState("");
+  const [linkType, setLinkType] = useState<LinkType>("none");
+  const [linkedId, setLinkedId] = useState<string>("");
 
   const currentSubs = allGroupSubcategories[categoryGroup] || [];
 
@@ -60,6 +68,8 @@ export function BillForm({ onSubmit }: BillFormProps) {
       recurrence: isInstallment ? "none" : recurrence,
       installments: isInstallment ? parseInt(installments) : undefined,
       notes: notes.trim() || undefined,
+      supplierId: linkType === "supplier" ? linkedId || undefined : undefined,
+      employeeId: linkType === "employee" ? linkedId || undefined : undefined,
     });
 
     setDescription("");
@@ -71,6 +81,8 @@ export function BillForm({ onSubmit }: BillFormProps) {
     setIsInstallment(false);
     setInstallments("2");
     setNotes("");
+    setLinkType("none");
+    setLinkedId("");
     setOpen(false);
   };
 
@@ -187,6 +199,49 @@ export function BillForm({ onSubmit }: BillFormProps) {
               </Select>
             </div>
           )}
+
+          <div className="space-y-2">
+            <Label>Vincular a Fornecedor/Colaborador (opcional)</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Select
+                value={linkType}
+                onValueChange={(v) => {
+                  setLinkType(v as LinkType);
+                  setLinkedId("");
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-popover">
+                  <SelectItem value="none">Nenhum</SelectItem>
+                  <SelectItem value="supplier">Fornecedor</SelectItem>
+                  <SelectItem value="employee">Colaborador</SelectItem>
+                </SelectContent>
+              </Select>
+
+              {linkType !== "none" && (
+                <Select value={linkedId} onValueChange={setLinkedId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover">
+                    {linkType === "supplier"
+                      ? activeSuppliers.map((s) => (
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.legalName}
+                          </SelectItem>
+                        ))
+                      : activeEmployees.map((e) => (
+                          <SelectItem key={e.id} value={e.id}>
+                            {e.fullName}
+                          </SelectItem>
+                        ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

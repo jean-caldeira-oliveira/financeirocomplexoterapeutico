@@ -30,6 +30,8 @@ export interface AddBillData {
   recurrence?: BillRecurrence;
   installments?: number;
   notes?: string;
+  supplierId?: string;
+  employeeId?: string;
 }
 
 export interface NewPaymentLine {
@@ -120,6 +122,8 @@ const mapRow = (row: any, payments: BillPayment[] = []): Bill => {
     notes: row.notes ?? undefined,
     paymentNotes: row.payment_notes ?? undefined,
     createdAt: row.created_at,
+    supplierId: row.supplier_id ?? undefined,
+    employeeId: row.employee_id ?? undefined,
     payments,
     totalPaid,
   };
@@ -255,6 +259,8 @@ export function useBills() {
             total_installments: installments,
             notes: data.notes ?? null,
             recurrence_group_id: seriesGroupId,
+            supplier_id: data.supplierId ?? null,
+            employee_id: data.employeeId ?? null,
           });
         }
       } else if (recurrence !== "none") {
@@ -275,6 +281,8 @@ export function useBills() {
             recurrence,
             notes: data.notes ?? null,
             recurrence_group_id: seriesGroupId,
+            supplier_id: data.supplierId ?? null,
+            employee_id: data.employeeId ?? null,
           });
           currentDueDate = getNextDueDate(currentDueDate, recurrence);
         }
@@ -294,6 +302,8 @@ export function useBills() {
           recurrence: "none",
           notes: data.notes ?? null,
           // single bills have no group
+          supplier_id: data.supplierId ?? null,
+          employee_id: data.employeeId ?? null,
         });
       }
 
@@ -720,6 +730,8 @@ export function useBills() {
           updates.subcategory = data.subcategory;
         if (data.recurrence !== undefined) updates.recurrence = data.recurrence;
         if (data.notes !== undefined) updates.notes = data.notes;
+        if (data.supplierId !== undefined) updates.supplier_id = data.supplierId ?? null;
+        if (data.employeeId !== undefined) updates.employee_id = data.employeeId ?? null;
         if (applyDueDate && data.dueDate !== undefined) {
           updates.due_date = data.dueDate.toISOString();
           if (b.status !== "paid" && b.status !== "partially_paid") {
@@ -778,6 +790,10 @@ export function useBills() {
             notes: updates.notes ?? b.notes,
             dueDate: updates.due_date ?? b.dueDate,
             status: updates.status ?? b.status,
+            supplierId:
+              "supplier_id" in updates ? updates.supplier_id ?? undefined : b.supplierId,
+            employeeId:
+              "employee_id" in updates ? updates.employee_id ?? undefined : b.employeeId,
           };
         })
       );
