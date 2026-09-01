@@ -75,10 +75,13 @@ export function BudgetQuoteForm() {
     try {
       const quote = await createQuote.mutateAsync(data);
       await exportBudgetQuotePDF(quote);
-      form.reset(defaultValues);
     } catch {
       toast.error("Não foi possível gerar o PDF do orçamento");
     }
+  };
+
+  const handleClear = () => {
+    form.reset(defaultValues);
   };
 
   return (
@@ -300,7 +303,15 @@ export function BudgetQuoteForm() {
           )}
         />
 
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleClear}
+            disabled={createQuote.isPending}
+          >
+            Limpar Formulário
+          </Button>
           <Button type="submit" disabled={createQuote.isPending}>
             <FileDown className="mr-2 h-4 w-4" />
             {createQuote.isPending ? "Gerando..." : "Gerar Orçamento em PDF"}

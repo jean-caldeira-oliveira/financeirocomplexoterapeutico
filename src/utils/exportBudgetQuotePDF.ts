@@ -250,13 +250,13 @@ export async function exportBudgetQuotePDF(quote: BudgetQuote) {
   if (quote.psychiatricFollowup) {
     includedItems.push("Acompanhamento psiquiátrico");
   } else {
-    extraItems.push("Acompanhamento psiquiátrico (sob solicitação)");
+    extraItems.push(`Acompanhamento psiquiátrico (${fmt(PSYCHIATRIC_FOLLOWUP_FEE)}/mês, sob solicitação)`);
   }
 
   if (quote.laundryIncluded) {
     includedItems.push("Lavanderia");
   } else {
-    extraItems.push("Lavanderia (sob solicitação)");
+    extraItems.push(`Lavanderia (${fmt(LAUNDRY_FEE)}/mês, sob solicitação)`);
   }
 
   const listColW = (pw - marginX * 2 - 8) / 2;
