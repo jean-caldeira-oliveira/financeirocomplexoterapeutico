@@ -67,7 +67,7 @@ export function AppSidebar() {
             height="40"
           />
           <div className="min-w-0 group-data-[collapsible=icon]:hidden">
-            <p className="truncate text-sm font-bold">CONTROLE DE CAIXA</p>
+            <p className="truncate text-sm font-bold">SISTEMA ADMINISTRATIVO</p>
             <p className="truncate text-xs text-sidebar-foreground/70">
               COMPLEXO TERAPÊUTICO
             </p>

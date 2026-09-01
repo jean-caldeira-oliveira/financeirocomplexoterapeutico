@@ -653,7 +653,7 @@ const Index = () => {
               height="48"
             />
             <div>
-              <h1 className="text-lg font-bold">CONTROLE DE CAIXA</h1>
+              <h1 className="text-lg font-bold">SISTEMA ADMINISTRATIVO</h1>
               <p className="text-xs text-muted-foreground">
                 COMPLEXO TERAPÊUTICO
               </p>
