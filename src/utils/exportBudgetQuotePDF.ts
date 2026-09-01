@@ -170,15 +170,19 @@ export async function exportBudgetQuotePDF(quote: BudgetQuote) {
     semi_privativo: [74, 103, 65],
     privativo: [44, 74, 110],
   };
+  const filledRoomTypes = roomTypeOrder.filter((roomType) => {
+    const pricing = quote.roomPricing[roomType];
+    return pricing.enrollmentFee > 0 || pricing.monthlyFee > 0;
+  });
   const cardGap = 5;
-  const cardW = (pw - marginX * 2 - cardGap * 2) / 3;
+  const cardW = (pw - marginX * 2 - cardGap * (filledRoomTypes.length - 1)) / filledRoomTypes.length;
   const cardH = quote.psychiatricFollowup || quote.laundryIncluded ? 48 : 42;
   const cardPad = 4;
 
   const monthlyExtras = (quote.psychiatricFollowup ? PSYCHIATRIC_FOLLOWUP_FEE : 0) +
     (quote.laundryIncluded ? LAUNDRY_FEE : 0);
 
-  roomTypeOrder.forEach((roomType, idx) => {
+  filledRoomTypes.forEach((roomType, idx) => {
     const cx = marginX + idx * (cardW + cardGap);
     const roomColor = roomColors[roomType];
     const pricing = quote.roomPricing[roomType];

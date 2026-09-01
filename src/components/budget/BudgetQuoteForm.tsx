@@ -178,7 +178,7 @@ export function BudgetQuoteForm() {
             Modalidades de Acomodação e Investimento
           </h3>
           <p className="mb-3 text-xs text-muted-foreground">
-            As três modalidades abaixo sempre aparecem no orçamento gerado.
+            Deixe matrícula e mensalidade em 0 para não incluir aquela modalidade no orçamento gerado.
           </p>
           <div className="space-y-4">
             {roomTypeOrder.map((roomType) => (
