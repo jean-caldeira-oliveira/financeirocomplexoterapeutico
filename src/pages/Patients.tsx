@@ -31,6 +31,7 @@ import { usePatients } from "@/hooks/usePatients";
 import { useReferralSources } from "@/hooks/useReferralSources";
 import { Invoice } from "@/types/invoice";
 import { Patient, Ward, wardLabels } from "@/types/transaction";
+import { isContractFinished } from "@/utils/patientContract";
 import {
   ArrowLeft,
   Building2,
@@ -42,7 +43,7 @@ import {
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-type StatusFilter = "all" | "active" | "inactive";
+type StatusFilter = "all" | "active" | "inactive" | "contract_finished";
 type WardFilter = "all" | Ward;
 type ReferralFilter = "all" | string;
 
@@ -73,7 +74,7 @@ const Patients = () => {
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const [viewingPatient, setViewingPatient] = useState<Patient | null>(null);
   const [extendingPatient, setExtendingPatient] = useState<Patient | null>(
-    null
+    null,
   );
   const [referralsDialogOpen, setReferralsDialogOpen] = useState(false);
   const [feeChangeConfirm, setFeeChangeConfirm] = useState<{
@@ -82,7 +83,7 @@ const Patients = () => {
     oldFee: number;
   } | null>(null);
   const [deactivateConfirm, setDeactivateConfirm] = useState<Patient | null>(
-    null
+    null,
   );
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("active");
   const [wardFilter, setWardFilter] = useState<WardFilter>("all");
@@ -94,7 +95,9 @@ const Patients = () => {
       const statusMatch =
         statusFilter === "all" ||
         (statusFilter === "active" && patient.active) ||
-        (statusFilter === "inactive" && !patient.active);
+        (statusFilter === "inactive" && !patient.active) ||
+        (statusFilter === "contract_finished" &&
+          isContractFinished(patient, invoices));
 
       const wardMatch = wardFilter === "all" || patient.ward === wardFilter;
 
@@ -107,12 +110,24 @@ const Patients = () => {
 
       return statusMatch && wardMatch && referralMatch && searchMatch;
     });
-  }, [patients, statusFilter, wardFilter, referralFilter, searchQuery]);
+  }, [
+    patients,
+    invoices,
+    statusFilter,
+    wardFilter,
+    referralFilter,
+    searchQuery,
+  ]);
+
+  const contractFinishedCount = useMemo(
+    () => patients.filter((p) => isContractFinished(p, invoices)).length,
+    [patients, invoices],
+  );
 
   // Get unique referral sources from patients for filtering
   const usedReferralSources = useMemo(() => {
     const sources = new Set(
-      patients.map((p) => p.referralSource).filter(Boolean)
+      patients.map((p) => p.referralSource).filter(Boolean),
     );
     return Array.from(sources).sort();
   }, [patients]);
@@ -231,22 +246,22 @@ const Patients = () => {
   const handleExtendContract = async (additionalMonths: number) => {
     if (!extendingPatient) return;
     const patientInvoices: Invoice[] = invoices.filter(
-      (inv) => inv.patientId === extendingPatient.id
+      (inv) => inv.patientId === extendingPatient.id,
     );
     const monthlyInvoices = patientInvoices.filter(
-      (inv) => inv.type === "monthly"
+      (inv) => inv.type === "monthly",
     );
     const lastMonthlyInvoice =
       monthlyInvoices.length > 0
         ? monthlyInvoices.reduce((prev, curr) =>
-            curr.installmentNumber > prev.installmentNumber ? curr : prev
+            curr.installmentNumber > prev.installmentNumber ? curr : prev,
           )
         : null;
     const lastInvoiceDueDate = lastMonthlyInvoice
       ? new Date(lastMonthlyInvoice.dueDate)
       : extendingPatient.firstInstallmentDate
-      ? new Date(extendingPatient.firstInstallmentDate)
-      : new Date();
+        ? new Date(extendingPatient.firstInstallmentDate)
+        : new Date();
 
     await extendContract(extendingPatient.id, additionalMonths);
     await generateExtensionInvoices({
@@ -317,6 +332,14 @@ const Patients = () => {
               </span>
               <span className="font-bold">{patientsByWard.masculina}</span>
             </Badge>
+            <Badge variant="outline" className="gap-2 border-amber-500/50 py-2">
+              <span className="font-normal text-muted-foreground">
+                Contratos Finalizados:
+              </span>
+              <span className="font-bold text-amber-600">
+                {contractFinishedCount}
+              </span>
+            </Badge>
           </div>
 
           <div className="flex items-center gap-3">
@@ -342,6 +365,9 @@ const Patients = () => {
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="active">Ativos</SelectItem>
                 <SelectItem value="inactive">Inativos</SelectItem>
+                <SelectItem value="contract_finished">
+                  Contrato Finalizado
+                </SelectItem>
               </SelectContent>
             </Select>
 
@@ -411,6 +437,7 @@ const Patients = () => {
           ) : (
             <PatientTable
               patients={filteredPatients}
+              invoices={invoices}
               onEdit={handleStartEdit}
               onDelete={deletePatient}
               onView={handleView}
@@ -459,7 +486,7 @@ const Patients = () => {
           onOpenChange={(open) => !open && setExtendingPatient(null)}
           patient={extendingPatient}
           invoices={invoices.filter(
-            (inv) => inv.patientId === extendingPatient.id
+            (inv) => inv.patientId === extendingPatient.id,
           )}
           onExtend={handleExtendContract}
         />
