@@ -1,15 +1,18 @@
+import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  legalCaseStatusSummary,
-  legalDeadlines,
-  legalRiskSummary,
+  filterCasesByPolarity,
+  filterDeadlinesByPolarity,
+  getCaseStatusSummary,
+  getRiskSummary,
+  LegalCasePolarity,
   LegalCaseStatus,
   LegalDeadline,
   LegalRiskLevel,
 } from "@/data/legalMockData";
-import { AlertTriangle, Clock, DollarSign, Scale } from "lucide-react";
+import { AlertTriangle, ArrowDownToLine, ArrowUpFromLine, Clock, DollarSign, Scale } from "lucide-react";
 
 function formatCurrency(value: number): string {
   return new Intl.NumberFormat("pt-BR", {
@@ -59,21 +62,53 @@ const deadlineUrgencyDot: Record<LegalDeadline["urgency"], string> = {
   mes: "bg-yellow-500",
 };
 
-export function LegalDashboard() {
-  const totalValueAtStake = legalRiskSummary.reduce((sum, r) => sum + r.valueAtStake, 0);
-  const totalCases = legalRiskSummary.reduce((sum, r) => sum + r.count, 0);
+type PolarityFilter = LegalCasePolarity | "todos";
 
-  const deadlinesToday = legalDeadlines.filter((d) => d.urgency === "hoje");
-  const deadlinesWeek = legalDeadlines.filter(
-    (d) => d.urgency === "hoje" || d.urgency === "semana"
-  );
-  const deadlinesMonth = legalDeadlines;
+const polarityOptions: { value: PolarityFilter; label: string; icon: typeof ArrowUpFromLine }[] = [
+  { value: "todos", label: "Todos", icon: Scale },
+  { value: "ativo", label: "Ativos (movendo)", icon: ArrowUpFromLine },
+  { value: "passivo", label: "Passivos (sofrendo)", icon: ArrowDownToLine },
+];
+
+export function LegalDashboard() {
+  const [polarity, setPolarity] = useState<PolarityFilter>("todos");
+
+  const cases = useMemo(() => filterCasesByPolarity(polarity), [polarity]);
+  const deadlines = useMemo(() => filterDeadlinesByPolarity(polarity), [polarity]);
+  const riskSummary = useMemo(() => getRiskSummary(cases), [cases]);
+  const caseStatusSummary = useMemo(() => getCaseStatusSummary(cases), [cases]);
+
+  const totalValueAtStake = riskSummary.reduce((sum, r) => sum + r.valueAtStake, 0);
+  const totalCases = riskSummary.reduce((sum, r) => sum + r.count, 0);
+
+  const deadlinesToday = deadlines.filter((d) => d.urgency === "hoje");
+  const deadlinesWeek = deadlines.filter((d) => d.urgency === "hoje" || d.urgency === "semana");
+  const deadlinesMonth = deadlines;
 
   return (
     <div className="space-y-4">
       <p className="text-xs text-muted-foreground">
         Dados de demonstração — este módulo ainda não está integrado a dados reais.
       </p>
+
+      {/* Toggle Ativos / Passivos / Todos */}
+      <div className="inline-flex items-center gap-1 rounded-lg border border-border bg-card p-1">
+        {polarityOptions.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => setPolarity(opt.value)}
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+              polarity === opt.value
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-muted"
+            }`}
+          >
+            <opt.icon className="h-3.5 w-3.5" />
+            {opt.label}
+          </button>
+        ))}
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
         {/* Risco jurídico atual */}
@@ -89,7 +124,7 @@ export function LegalDashboard() {
           </p>
 
           <div className="mt-4 space-y-2">
-            {legalRiskSummary.map((r) => (
+            {riskSummary.map((r) => (
               <div
                 key={r.level}
                 className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2"
@@ -104,7 +139,7 @@ export function LegalDashboard() {
           </div>
 
           <p className="mt-3 text-[11px] text-muted-foreground">
-            {legalRiskSummary.find((r) => r.level === "alto")?.count ?? 0} situações que podem
+            {riskSummary.find((r) => r.level === "alto")?.count ?? 0} situações que podem
             gerar impacto sério.
           </p>
         </div>
@@ -123,7 +158,7 @@ export function LegalDashboard() {
           <p className="text-xs text-muted-foreground">Valor total em risco</p>
 
           <div className="mt-4 space-y-2">
-            {legalRiskSummary.map((r) => (
+            {riskSummary.map((r) => (
               <div
                 key={r.level}
                 className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2"
@@ -180,6 +215,16 @@ export function LegalDashboard() {
                               className={`h-2 w-2 shrink-0 rounded-full ${deadlineUrgencyDot[d.urgency]}`}
                             />
                             <span className="truncate text-sm">{d.description}</span>
+                            <Badge
+                              variant="outline"
+                              className={
+                                d.polarity === "ativo"
+                                  ? "shrink-0 border-blue-500/30 text-[10px] text-blue-600 dark:text-blue-400"
+                                  : "shrink-0 border-purple-500/30 text-[10px] text-purple-600 dark:text-purple-400"
+                              }
+                            >
+                              {d.polarity === "ativo" ? "Ativo" : "Passivo"}
+                            </Badge>
                           </div>
                           <span className="shrink-0 text-[11px] text-muted-foreground">
                             {d.date}
@@ -205,7 +250,7 @@ export function LegalDashboard() {
           </p>
 
           <div className="mt-4 space-y-2">
-            {legalCaseStatusSummary.map((s) => (
+            {caseStatusSummary.map((s) => (
               <div
                 key={s.status}
                 className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2"
