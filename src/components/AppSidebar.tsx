@@ -91,15 +91,22 @@ const navItems: NavEntry[] = [
     ],
   },
   { to: "/juridico", label: "Jurídico", icon: Scale, badge: "Em construção" },
-  { to: "/rh", label: "RH", icon: Users2, badge: "Em construção" },
-  { to: "/rh/dashboard", label: "Dashboard", icon: LayoutDashboard, badge: "Em construção" },
-  { to: "/rh/colaboradores", label: "Colaboradores", icon: UserCog, badge: "Em construção" },
-  { to: "/rh/escala", label: "Escala", icon: CalendarRange, badge: "Em construção" },
-  { to: "/rh/ferias-ausencias", label: "Férias e Ausências", icon: Plane, badge: "Em construção" },
-  { to: "/rh/ponto-jornada", label: "Ponto e Jornada", icon: Clock, badge: "Em construção" },
-  { to: "/rh/acompanhamentos", label: "Acompanhamentos", icon: ClipboardList, badge: "Em construção" },
-  { to: "/rh/treinamentos", label: "Treinamentos", icon: GraduationCap, badge: "Em construção" },
-  { to: "/rh/banco-de-talentos", label: "Banco de Talentos", icon: Users, badge: "Em construção" },
+  {
+    to: "/rh",
+    label: "RH",
+    icon: Users2,
+    badge: "Em construção",
+    subItems: [
+      { to: "/rh/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { to: "/rh/colaboradores", label: "Colaboradores", icon: UserCog },
+      { to: "/rh/escala", label: "Escala", icon: CalendarRange },
+      { to: "/rh/ferias-ausencias", label: "Férias e Ausências", icon: Plane },
+      { to: "/rh/ponto-jornada", label: "Ponto e Jornada", icon: Clock },
+      { to: "/rh/acompanhamentos", label: "Acompanhamentos", icon: ClipboardList },
+      { to: "/rh/treinamentos", label: "Treinamentos", icon: GraduationCap },
+      { to: "/rh/banco-de-talentos", label: "Banco de Talentos", icon: Users },
+    ],
+  },
   { to: "/lavanderia", label: "Lavanderia", icon: Shirt, badge: "Em construção" },
   { to: "/cantina", label: "Cantina", icon: UtensilsCrossed, badge: "Em construção" },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3, badge: "Em Refinamento" },
@@ -196,10 +203,19 @@ export function AppSidebar() {
                           >
                             <item.icon />
                             <span>{item.label}</span>
+                            {item.badge && (
+                              <span
+                                className={`ml-auto whitespace-nowrap rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white group-data-[collapsible=icon]:hidden ${
+                                  item.badge === "Em construção" ? "bg-blue-500" : "bg-orange-500"
+                                }`}
+                              >
+                                {item.badge}
+                              </span>
+                            )}
                             <ChevronRight
-                              className={`ml-auto h-4 w-4 shrink-0 transition-transform duration-200 group-data-[collapsible=icon]:hidden ${
-                                open ? "rotate-90" : ""
-                              }`}
+                              className={`h-4 w-4 shrink-0 transition-transform duration-200 group-data-[collapsible=icon]:hidden ${
+                                item.badge ? "" : "ml-auto"
+                              } ${open ? "rotate-90" : ""}`}
                             />
                           </SidebarMenuButton>
                         </CollapsibleTrigger>
