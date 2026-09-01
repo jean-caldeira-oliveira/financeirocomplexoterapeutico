@@ -56,12 +56,12 @@ interface NavEntry extends NavItem {
 }
 
 const navItems: NavEntry[] = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard },
   {
     to: "/financeiro",
     label: "Financeiro",
     icon: Wallet2,
     subItems: [
+      { to: "/", label: "Dashboard", icon: LayoutDashboard },
       { to: "/pacientes", label: "Pacientes", icon: Users },
       { to: "/cobrancas", label: "Cobranças", icon: Receipt },
       { to: "/contas", label: "Contas", icon: FileText },
