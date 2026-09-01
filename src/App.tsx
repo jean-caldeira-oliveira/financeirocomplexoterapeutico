@@ -21,6 +21,7 @@ const Colaboradores = lazy(() => import("./pages/Colaboradores"));
 const DashboardComercial = lazy(() => import("./pages/DashboardComercial"));
 const Orcamento = lazy(() => import("./pages/Orcamento"));
 const Marketing = lazy(() => import("./pages/Marketing"));
+const Leads = lazy(() => import("./pages/Leads"));
 const Juridico = lazy(() => import("./pages/Juridico"));
 const RH = lazy(() => import("./pages/RH"));
 const Lavanderia = lazy(() => import("./pages/Lavanderia"));
@@ -164,6 +165,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Marketing />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/comercial/leads"
+              element={
+                <ProtectedRoute>
+                  <Leads />
                 </ProtectedRoute>
               }
             />
