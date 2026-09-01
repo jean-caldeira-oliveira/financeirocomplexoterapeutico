@@ -5,6 +5,8 @@ export type AuditModule =
   | "cobrancas"
   | "contas"
   | "transacoes"
+  | "fornecedores"
+  | "colaboradores"
   | "admin"
   | "sistema";
 

@@ -1,0 +1,16 @@
+Campo,Tipo de Dado,Obrigatório,Formato / Máscara,Valores Possíveis / Origem,Regra de Negócio / Observação
+Código do Fornecedor,Numérico,Sim,Sequencial automático,Gerado pelo sistema,"Chave única, não editável"
+Tipo de Pessoa,Lista,Sim,-,PF / PJ,Define máscara de CPF/CNPJ e campos obrigatórios seguintes
+Razão Social / Nome,Texto,Sim,Até 150 caracteres,-,
+Nome Fantasia,Texto,Não,Até 100 caracteres,-,
+CPF / CNPJ,Texto numérico,Sim,11 ou 14 dígitos,-,Validar dígito verificador; não permitir duplicidade
+Telefone,Texto,Não,(DD) 00000-0000,-,
+E-mail,Texto,Não,formato de e-mail válido,-,
+Endereço,Texto,Não,"Rua, nº, bairro, cidade, UF, CEP",-,
+Banco / Agência / Conta,Texto,Não,-,Lista FEBRABAN ou texto livre,Usado para pagamentos via transferência
+Chave PIX,Texto,Não,-,"CPF/CNPJ, e-mail, telefone ou aleatória",
+Conta Padrão (Plano de Contas),Lista relacionada,Sim,-,Código válido da aba Plano de Contas,Pré-preenche o lançamento; pode ser sobrescrita em cada lançamento individual
+Centro de Custo Padrão,Lista,Sim,-,Administrativo / Assistencial / Financeiro / Comercial / Diretoria / Impostos,Herdado da Conta Padrão; pode ser sobrescrito por lançamento
+Status,Lista,Sim,-,Ativo / Inativo,"Ver aba ""Regras de Relacionamento"" antes de permitir exclusão"
+Data de Cadastro,Data,Sim,dd/mm/aaaa,Gerada automaticamente,
+Observações,Texto livre,Não,-,-,
