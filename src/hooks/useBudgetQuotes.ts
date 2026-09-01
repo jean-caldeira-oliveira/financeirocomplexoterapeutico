@@ -1,6 +1,6 @@
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { BudgetQuote, RoomType } from "@/types/budgetQuote";
+import { BudgetQuote, RoomPricing, RoomType } from "@/types/budgetQuote";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -11,9 +11,7 @@ export interface NewBudgetQuoteData {
   guardianName: string;
   guardianDocument?: string;
   guardianPhone?: string;
-  roomType: RoomType;
-  enrollmentFee: number;
-  monthlyFee: number;
+  roomPricing: Record<RoomType, RoomPricing>;
   psychiatricFollowup: boolean;
   periodMonths?: string;
   validityDays: number;
@@ -30,9 +28,20 @@ const mapQuoteRow = (row: any): BudgetQuote => ({
   guardianName: row.guardian_name,
   guardianDocument: row.guardian_document ?? undefined,
   guardianPhone: row.guardian_phone ?? undefined,
-  roomType: row.room_type as RoomType,
-  enrollmentFee: Number(row.enrollment_fee),
-  monthlyFee: Number(row.monthly_fee),
+  roomPricing: {
+    coletivo: {
+      enrollmentFee: Number(row.coletivo_enrollment_fee),
+      monthlyFee: Number(row.coletivo_monthly_fee),
+    },
+    semi_privativo: {
+      enrollmentFee: Number(row.semi_privativo_enrollment_fee),
+      monthlyFee: Number(row.semi_privativo_monthly_fee),
+    },
+    privativo: {
+      enrollmentFee: Number(row.privativo_enrollment_fee),
+      monthlyFee: Number(row.privativo_monthly_fee),
+    },
+  },
   psychiatricFollowup: row.psychiatric_followup,
   periodMonths: row.period_months ?? undefined,
   validityDays: row.validity_days,
@@ -76,9 +85,12 @@ export function useBudgetQuotes() {
           guardian_name: data.guardianName,
           guardian_document: data.guardianDocument || null,
           guardian_phone: data.guardianPhone || null,
-          room_type: data.roomType,
-          enrollment_fee: data.enrollmentFee,
-          monthly_fee: data.monthlyFee,
+          coletivo_enrollment_fee: data.roomPricing.coletivo.enrollmentFee,
+          coletivo_monthly_fee: data.roomPricing.coletivo.monthlyFee,
+          semi_privativo_enrollment_fee: data.roomPricing.semi_privativo.enrollmentFee,
+          semi_privativo_monthly_fee: data.roomPricing.semi_privativo.monthlyFee,
+          privativo_enrollment_fee: data.roomPricing.privativo.enrollmentFee,
+          privativo_monthly_fee: data.roomPricing.privativo.monthlyFee,
           psychiatric_followup: data.psychiatricFollowup,
           period_months: data.periodMonths || null,
           validity_days: data.validityDays,

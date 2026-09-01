@@ -1,5 +1,5 @@
 import jsPDF from "jspdf";
-import { BudgetQuote, roomTypeDescriptions, roomTypeLabels } from "@/types/budgetQuote";
+import { BudgetQuote, roomTypeDescriptions, roomTypeLabels, roomTypeOrder } from "@/types/budgetQuote";
 import logo from "@/assets/logo.png";
 
 function fmt(value: number): string {
@@ -156,7 +156,7 @@ export async function exportBudgetQuotePDF(quote: BudgetQuote) {
   });
   y += 13 * 2 + 4;
 
-  // ── MODALIDADE SELECIONADA ──
+  // ── MODALIDADES (3 CARDS) ──
   sectionHead("Modalidade de Acomodação e Investimento");
 
   const roomColors: Record<string, [number, number, number]> = {
@@ -164,41 +164,59 @@ export async function exportBudgetQuotePDF(quote: BudgetQuote) {
     semi_privativo: [74, 103, 65],
     privativo: [44, 74, 110],
   };
-  const roomColor = roomColors[quote.roomType];
-  const cardH = 26;
-  doc.setDrawColor(...roomColor);
-  doc.setLineWidth(0.8);
-  doc.roundedRect(marginX, y, pw - marginX * 2, cardH, 2, 2);
-  doc.setFillColor(...roomColor);
-  doc.roundedRect(marginX, y, pw - marginX * 2, 7, 2, 2, "F");
-  doc.rect(marginX, y + 3.5, pw - marginX * 2, 3.5, "F");
-  doc.setTextColor(255, 255, 255);
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(9);
-  doc.text(roomTypeLabels[quote.roomType], marginX + 4, y + 5);
-  doc.setTextColor(0, 0, 0);
+  const cardGap = 5;
+  const cardW = (pw - marginX * 2 - cardGap * 2) / 3;
+  const cardH = 42;
+  const cardPad = 4;
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
-  doc.setTextColor(...MUTED);
-  doc.text(roomTypeDescriptions[quote.roomType], marginX + 4, y + 13);
-  doc.setTextColor(0, 0, 0);
+  roomTypeOrder.forEach((roomType, idx) => {
+    const cx = marginX + idx * (cardW + cardGap);
+    const roomColor = roomColors[roomType];
+    const pricing = quote.roomPricing[roomType];
 
-  doc.setDrawColor(...SAND);
-  doc.setLineWidth(0.3);
-  doc.line(marginX + 4, y + 17, pw - marginX - 4, y + 17);
+    doc.setDrawColor(...roomColor);
+    doc.setLineWidth(0.8);
+    doc.roundedRect(cx, y, cardW, cardH, 2, 2);
+    doc.setFillColor(...roomColor);
+    doc.roundedRect(cx, y, cardW, 8, 2, 2, "F");
+    doc.rect(cx, y + 4, cardW, 4, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8.5);
+    doc.text(roomTypeLabels[roomType], cx + cardPad, y + 5.3);
+    doc.setTextColor(0, 0, 0);
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.setTextColor(...MUTED);
-  doc.text("MATRÍCULA", marginX + 4, y + 22);
-  doc.text("MENSALIDADE", pw - marginX - 4, y + 22, { align: "right" });
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(11);
-  doc.setTextColor(...roomColor);
-  doc.text(fmt(quote.enrollmentFee), marginX + 4, y + 25.5);
-  doc.text(fmt(quote.monthlyFee), pw - marginX - 4, y + 25.5, { align: "right" });
-  doc.setTextColor(0, 0, 0);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.8);
+    doc.setTextColor(...MUTED);
+    const descLines = doc.splitTextToSize(roomTypeDescriptions[roomType], cardW - cardPad * 2);
+    doc.text(descLines, cx + cardPad, y + 13);
+    doc.setTextColor(0, 0, 0);
+
+    const lineY = y + 13 + descLines.length * 3.2 + 2;
+    doc.setDrawColor(...SAND);
+    doc.setLineWidth(0.3);
+    doc.line(cx + cardPad, lineY, cx + cardW - cardPad, lineY);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6);
+    doc.setTextColor(...MUTED);
+    doc.text("MATRÍCULA", cx + cardPad, lineY + 4.5);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...roomColor);
+    doc.text(fmt(pricing.enrollmentFee), cx + cardPad, lineY + 9);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6);
+    doc.setTextColor(...MUTED);
+    doc.text("MENSALIDADE", cx + cardW - cardPad, lineY + 4.5, { align: "right" });
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(9);
+    doc.setTextColor(...roomColor);
+    doc.text(fmt(pricing.monthlyFee), cx + cardW - cardPad, lineY + 9, { align: "right" });
+    doc.setTextColor(0, 0, 0);
+  });
 
   y += cardH + 4;
 

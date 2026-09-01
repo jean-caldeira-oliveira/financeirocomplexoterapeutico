@@ -12,6 +12,13 @@ export const roomTypeDescriptions: Record<RoomType, string> = {
   privativo: "Exclusivo · 1 cama · TV · Frigobar · Banheiro exclusivo",
 };
 
+export const roomTypeOrder: RoomType[] = ["coletivo", "semi_privativo", "privativo"];
+
+export interface RoomPricing {
+  enrollmentFee: number;
+  monthlyFee: number;
+}
+
 export interface BudgetQuote {
   id: string;
   userId: string;
@@ -22,9 +29,7 @@ export interface BudgetQuote {
   guardianName: string;
   guardianDocument?: string;
   guardianPhone?: string;
-  roomType: RoomType;
-  enrollmentFee: number;
-  monthlyFee: number;
+  roomPricing: Record<RoomType, RoomPricing>;
   psychiatricFollowup: boolean;
   periodMonths?: string;
   validityDays: number;

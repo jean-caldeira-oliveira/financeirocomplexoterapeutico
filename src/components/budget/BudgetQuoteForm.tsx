@@ -8,23 +8,21 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { useBudgetQuotes } from "@/hooks/useBudgetQuotes";
 import { exportBudgetQuotePDF } from "@/utils/exportBudgetQuotePDF";
-import { RoomType, roomTypeLabels } from "@/types/budgetQuote";
+import { roomTypeLabels, roomTypeOrder } from "@/types/budgetQuote";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { FileDown } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { z } from "zod";
+
+const roomPricingSchema = z.object({
+  enrollmentFee: z.coerce.number().min(0, "Valor inválido"),
+  monthlyFee: z.coerce.number().min(0, "Valor inválido"),
+});
 
 const budgetQuoteSchema = z.object({
   patientName: z.string().min(2, "Informe o nome do acolhido"),
@@ -33,9 +31,11 @@ const budgetQuoteSchema = z.object({
   guardianName: z.string().min(2, "Informe o nome do responsável"),
   guardianDocument: z.string().optional(),
   guardianPhone: z.string().optional(),
-  roomType: z.enum(["coletivo", "semi_privativo", "privativo"] as [RoomType, ...RoomType[]]),
-  enrollmentFee: z.coerce.number().min(0, "Valor inválido"),
-  monthlyFee: z.coerce.number().min(0, "Valor inválido"),
+  roomPricing: z.object({
+    coletivo: roomPricingSchema,
+    semi_privativo: roomPricingSchema,
+    privativo: roomPricingSchema,
+  }),
   psychiatricFollowup: z.boolean(),
   periodMonths: z.string().optional(),
   validityDays: z.coerce.number().min(1, "Informe a validade"),
@@ -51,9 +51,11 @@ const defaultValues: BudgetQuoteFormData = {
   guardianName: "",
   guardianDocument: "",
   guardianPhone: "",
-  roomType: "coletivo",
-  enrollmentFee: 2500,
-  monthlyFee: 2500,
+  roomPricing: {
+    coletivo: { enrollmentFee: 2500, monthlyFee: 2500 },
+    semi_privativo: { enrollmentFee: 0, monthlyFee: 0 },
+    privativo: { enrollmentFee: 0, monthlyFee: 0 },
+  },
   psychiatricFollowup: false,
   periodMonths: "",
   validityDays: 30,
@@ -168,33 +170,53 @@ export function BudgetQuoteForm() {
 
         <div>
           <h3 className="mb-3 text-sm font-semibold text-muted-foreground">
-            Modalidade de Acomodação e Investimento
+            Modalidades de Acomodação e Investimento
+          </h3>
+          <p className="mb-3 text-xs text-muted-foreground">
+            As três modalidades abaixo sempre aparecem no orçamento gerado.
+          </p>
+          <div className="space-y-4">
+            {roomTypeOrder.map((roomType) => (
+              <div key={roomType} className="rounded-md border p-3">
+                <p className="mb-3 text-sm font-medium">{roomTypeLabels[roomType]}</p>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <FormField
+                    control={form.control}
+                    name={`roomPricing.${roomType}.enrollmentFee`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Matrícula (R$)</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" min="0" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name={`roomPricing.${roomType}.monthlyFee`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Mensalidade (R$)</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" min="0" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h3 className="mb-3 text-sm font-semibold text-muted-foreground">
+            Condições da Proposta
           </h3>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <FormField
-              control={form.control}
-              name="roomType"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Modalidade</FormLabel>
-                  <Select value={field.value} onValueChange={field.onChange}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {(Object.keys(roomTypeLabels) as RoomType[]).map((type) => (
-                        <SelectItem key={type} value={type}>
-                          {roomTypeLabels[type]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <FormField
               control={form.control}
               name="periodMonths"
@@ -203,32 +225,6 @@ export function BudgetQuoteForm() {
                   <FormLabel>Período Previsto (meses)</FormLabel>
                   <FormControl>
                     <Input placeholder="Ex.: 6" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="enrollmentFee"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Matrícula (R$)</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" min="0" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="monthlyFee"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Mensalidade (R$)</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.01" min="0" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -251,7 +247,7 @@ export function BudgetQuoteForm() {
               control={form.control}
               name="psychiatricFollowup"
               render={({ field }) => (
-                <FormItem className="flex flex-row items-center justify-between rounded-md border p-3">
+                <FormItem className="flex flex-row items-center justify-between rounded-md border p-3 sm:col-span-2">
                   <FormLabel className="cursor-pointer font-normal">
                     Acompanhamento Psiquiátrico (+R$ 500,00/mês)
                   </FormLabel>

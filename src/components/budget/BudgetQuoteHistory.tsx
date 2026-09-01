@@ -21,7 +21,7 @@ import {
 import { useBudgetQuotes } from "@/hooks/useBudgetQuotes";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { exportBudgetQuotePDF } from "@/utils/exportBudgetQuotePDF";
-import { roomTypeLabels } from "@/types/budgetQuote";
+import { roomTypeLabels, roomTypeOrder } from "@/types/budgetQuote";
 import { FileDown, Loader2, Trash2 } from "lucide-react";
 
 function fmt(value: number): string {
@@ -60,8 +60,7 @@ export function BudgetQuoteHistory() {
           <TableRow>
             <TableHead>Paciente</TableHead>
             <TableHead>Responsável</TableHead>
-            <TableHead>Modalidade</TableHead>
-            <TableHead>Mensalidade</TableHead>
+            <TableHead>Mensalidades (Col. / Semi / Priv.)</TableHead>
             <TableHead>Data</TableHead>
             <TableHead>Gerado por</TableHead>
             <TableHead className="text-right">Ações</TableHead>
@@ -72,8 +71,11 @@ export function BudgetQuoteHistory() {
             <TableRow key={quote.id}>
               <TableCell className="font-medium">{quote.patientName}</TableCell>
               <TableCell>{quote.guardianName}</TableCell>
-              <TableCell>{roomTypeLabels[quote.roomType]}</TableCell>
-              <TableCell>{fmt(quote.monthlyFee)}</TableCell>
+              <TableCell className="whitespace-nowrap text-xs">
+                {roomTypeOrder
+                  .map((type) => `${roomTypeLabels[type].replace("Quarto ", "")}: ${fmt(quote.roomPricing[type].monthlyFee)}`)
+                  .join(" · ")}
+              </TableCell>
               <TableCell>{fmtDate(quote.createdAt)}</TableCell>
               <TableCell>{quote.userName ?? "-"}</TableCell>
               <TableCell className="text-right">
