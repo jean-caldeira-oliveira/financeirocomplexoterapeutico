@@ -8,7 +8,7 @@ export default function Orcamento() {
     <div className="space-y-6 p-6">
       <div className="flex items-center gap-3">
         <Wallet className="h-6 w-6 text-muted-foreground" />
-        <h1 className="text-2xl font-bold">Orçamento</h1>
+        <h1 className="text-2xl font-bold">Orçamentos</h1>
       </div>
 
       <Card>
