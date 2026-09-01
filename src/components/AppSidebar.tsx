@@ -36,7 +36,7 @@ const navItems = [
   { to: "/contas", label: "Contas", icon: FileText },
   { to: "/fornecedores", label: "Fornecedores", icon: Truck, badge: "Em construção" },
   { to: "/colaboradores", label: "Colaboradores", icon: UserCog, badge: "Em construção" },
-  { to: "/orcamento", label: "Orçamento", icon: Wallet, badge: "Em construção" },
+  { to: "/orcamento", label: "Orçamento", icon: Wallet },
   { to: "/marketing", label: "Marketing", icon: Megaphone, badge: "Em construção" },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3, badge: "Em Refinamento" },
 ];

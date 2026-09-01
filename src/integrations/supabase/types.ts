@@ -14,6 +14,66 @@ export type Database = {
   };
   public: {
     Tables: {
+      budget_quotes: {
+        Row: {
+          created_at: string;
+          enrollment_fee: number;
+          guardian_document: string | null;
+          guardian_name: string;
+          guardian_phone: string | null;
+          id: string;
+          monthly_fee: number;
+          notes: string | null;
+          patient_birth_date: string | null;
+          patient_document: string | null;
+          patient_name: string;
+          period_months: string | null;
+          psychiatric_followup: boolean;
+          room_type: string;
+          user_id: string;
+          user_name: string | null;
+          validity_days: number;
+        };
+        Insert: {
+          created_at?: string;
+          enrollment_fee: number;
+          guardian_document?: string | null;
+          guardian_name: string;
+          guardian_phone?: string | null;
+          id?: string;
+          monthly_fee: number;
+          notes?: string | null;
+          patient_birth_date?: string | null;
+          patient_document?: string | null;
+          patient_name: string;
+          period_months?: string | null;
+          psychiatric_followup?: boolean;
+          room_type: string;
+          user_id: string;
+          user_name?: string | null;
+          validity_days?: number;
+        };
+        Update: {
+          created_at?: string;
+          enrollment_fee?: number;
+          guardian_document?: string | null;
+          guardian_name?: string;
+          guardian_phone?: string | null;
+          id?: string;
+          monthly_fee?: number;
+          notes?: string | null;
+          patient_birth_date?: string | null;
+          patient_document?: string | null;
+          patient_name?: string;
+          period_months?: string | null;
+          psychiatric_followup?: boolean;
+          room_type?: string;
+          user_id?: string;
+          user_name?: string | null;
+          validity_days?: number;
+        };
+        Relationships: [];
+      };
       audit_log: {
         Row: {
           id: string;
