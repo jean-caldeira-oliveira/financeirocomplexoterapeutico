@@ -23,7 +23,14 @@ const Orcamento = lazy(() => import("./pages/Orcamento"));
 const Marketing = lazy(() => import("./pages/Marketing"));
 const Leads = lazy(() => import("./pages/Leads"));
 const Juridico = lazy(() => import("./pages/Juridico"));
-const RH = lazy(() => import("./pages/RH"));
+const RHDashboard = lazy(() => import("./pages/rh/RHDashboard"));
+const RHColaboradores = lazy(() => import("./pages/rh/RHColaboradores"));
+const Escala = lazy(() => import("./pages/rh/Escala"));
+const FeriasAusencias = lazy(() => import("./pages/rh/FeriasAusencias"));
+const PontoJornada = lazy(() => import("./pages/rh/PontoJornada"));
+const Acompanhamentos = lazy(() => import("./pages/rh/Acompanhamentos"));
+const Treinamentos = lazy(() => import("./pages/rh/Treinamentos"));
+const BancoTalentos = lazy(() => import("./pages/rh/BancoTalentos"));
 const Lavanderia = lazy(() => import("./pages/Lavanderia"));
 const Cantina = lazy(() => import("./pages/Cantina"));
 const Auth = lazy(() => import("./pages/Auth"));
@@ -188,7 +195,63 @@ const App = () => (
               path="/rh"
               element={
                 <ProtectedRoute>
-                  <RH />
+                  <RHDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/rh/colaboradores"
+              element={
+                <ProtectedRoute>
+                  <RHColaboradores />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/rh/escala"
+              element={
+                <ProtectedRoute>
+                  <Escala />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/rh/ferias-ausencias"
+              element={
+                <ProtectedRoute>
+                  <FeriasAusencias />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/rh/ponto-jornada"
+              element={
+                <ProtectedRoute>
+                  <PontoJornada />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/rh/acompanhamentos"
+              element={
+                <ProtectedRoute>
+                  <Acompanhamentos />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/rh/treinamentos"
+              element={
+                <ProtectedRoute>
+                  <Treinamentos />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/rh/banco-de-talentos"
+              element={
+                <ProtectedRoute>
+                  <BancoTalentos />
                 </ProtectedRoute>
               }
             />
