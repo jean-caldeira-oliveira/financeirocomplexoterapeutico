@@ -1,4 +1,3 @@
-import logo from "@/assets/logo.png";
 import { MonthSelector } from "@/components/MonthSelector";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,20 +18,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAuditLog } from "@/hooks/useAuditLog";
-import { useAuth } from "@/hooks/useAuth";
 import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import {
-  BarChart3,
-  FileText,
-  LogOut,
-  Receipt,
-  ScrollText,
-  Search,
-  Shield,
-  Users,
-} from "lucide-react";
+import { ArrowLeft, ScrollText, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, Navigate } from "react-router-dom";
 
@@ -91,7 +80,6 @@ const moduleVariant: Record<
 // ── Component ─────────────────────────────────────────────────────────────────
 
 const AuditLog = () => {
-  const { signOut } = useAuth();
   const { isAdmin, isLoading: adminLoading } = useIsAdmin();
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [searchQuery, setSearchQuery] = useState("");
@@ -128,89 +116,28 @@ const AuditLog = () => {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-lg">
-        <div className="container mx-auto flex flex-wrap items-center justify-between gap-4 px-4 py-4">
+        <div className="container mx-auto flex items-center justify-between gap-4 px-4 py-4">
           <div className="flex items-center gap-3">
-            <img
-              src={logo}
-              alt="Complexo Terapêutico"
-              className="h-12 w-auto"
-              width="48"
-              height="48"
-            />
+            <Link to="/">
+              <Button variant="ghost" size="icon">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+            </Link>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <ScrollText className="h-5 w-5" />
+            </div>
             <div>
-              <h1 className="text-lg font-bold">CONTROLE DE CAIXA</h1>
+              <h1 className="text-lg font-bold">Log de Auditoria</h1>
               <p className="text-xs text-muted-foreground">
-                COMPLEXO TERAPÊUTICO
+                Histórico imutável de ações do sistema
               </p>
             </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <Link to="/">
-              <Button variant="outline" size="sm" className="gap-2">
-                <BarChart3 className="h-4 w-4" />
-                Dashboard
-              </Button>
-            </Link>
-            <Link to="/pacientes">
-              <Button variant="outline" size="sm" className="gap-2">
-                <Users className="h-4 w-4" />
-                Pacientes
-              </Button>
-            </Link>
-            <Link to="/cobrancas">
-              <Button variant="outline" size="sm" className="gap-2">
-                <Receipt className="h-4 w-4" />
-                Cobranças
-              </Button>
-            </Link>
-            <Link to="/contas">
-              <Button variant="outline" size="sm" className="gap-2">
-                <FileText className="h-4 w-4" />
-                Contas
-              </Button>
-            </Link>
-            <Link to="/relatorios">
-              <Button variant="outline" size="sm" className="gap-2">
-                <BarChart3 className="h-4 w-4" />
-                Relatórios
-              </Button>
-            </Link>
-            {isAdmin && (
-              <Link to="/admin">
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Shield className="h-4 w-4" />
-                  Admin
-                </Button>
-              </Link>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={signOut}
-              className="gap-2 text-muted-foreground"
-            >
-              <LogOut className="h-4 w-4" />
-              Sair
-            </Button>
           </div>
         </div>
       </header>
 
       {/* Main */}
       <main className="container mx-auto px-4 py-8">
-        {/* Page title */}
-        <div className="mb-6 flex items-center gap-3">
-          <ScrollText className="h-7 w-7 text-primary" />
-          <div>
-            <h2 className="text-2xl font-bold">Log de Auditoria</h2>
-            <p className="text-sm text-muted-foreground">
-              Histórico imutável de todas as ações realizadas no sistema.
-              Somente leitura — nenhuma linha pode ser editada ou excluída.
-            </p>
-          </div>
-        </div>
-
         {/* Filters */}
         <div className="mb-6 flex flex-wrap items-center gap-3">
           <MonthSelector

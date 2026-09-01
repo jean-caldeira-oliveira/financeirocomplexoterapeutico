@@ -11,10 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/hooks/useAuth";
 import { useBills } from "@/hooks/useBills";
 import { useInvoices } from "@/hooks/useInvoices";
-import { useIsAdmin } from "@/hooks/useIsAdmin";
 import { usePatients } from "@/hooks/usePatients";
 import { useTransactions } from "@/hooks/useTransactions";
 import { Bill, billPaymentMethodLabels } from "@/types/bill";
@@ -30,11 +28,6 @@ import {
   Bell,
   Clock,
   DollarSign,
-  FileText,
-  LogOut,
-  Receipt,
-  ScrollText,
-  Shield,
   Target,
   TrendingDown,
   TrendingUp,
@@ -42,7 +35,6 @@ import {
   Wallet,
 } from "lucide-react";
 import { lazy, Suspense, useCallback, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
 
 // Inline type — avoids importing from the lazy-loaded chart module
 type ChartDataPoint = { label: string; expected: number; actual: number };
@@ -346,8 +338,6 @@ const Index = () => {
     getBillsActualExpenseByDateRange,
     getBillsExpectedExpenseByDateRange,
   } = useBills();
-  const { signOut } = useAuth();
-  const { isAdmin } = useIsAdmin();
 
   // Aggregate stats from all sources (transactions + bills + invoices)
   const aggregatedStats = useMemo(() => {
@@ -652,7 +642,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border bg-card/80 backdrop-blur-lg">
+      <header className="sticky top-0 z-30 border-b border-border bg-card/80 backdrop-blur-lg">
         <div className="container mx-auto flex flex-wrap items-center justify-between gap-4 px-4 py-4">
           <div className="flex items-center gap-3">
             <img
@@ -671,59 +661,10 @@ const Index = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <Link to="/pacientes">
-              <Button variant="outline" size="sm" className="gap-2">
-                <Users className="h-4 w-4" />
-                Pacientes
-              </Button>
-            </Link>
-            <Link to="/cobrancas">
-              <Button variant="outline" size="sm" className="gap-2">
-                <Receipt className="h-4 w-4" />
-                Cobranças
-              </Button>
-            </Link>
-            <Link to="/contas">
-              <Button variant="outline" size="sm" className="gap-2">
-                <FileText className="h-4 w-4" />
-                Contas
-              </Button>
-            </Link>
-            <Link to="/relatorios">
-              <Button variant="outline" size="sm" className="gap-2">
-                <BarChart3 className="h-4 w-4" />
-                Relatórios
-              </Button>
-            </Link>
             <MonthSelector
               selectedMonth={selectedMonth}
               onChange={setSelectedMonth}
             />
-            {isAdmin && (
-              <>
-                <Link to="/admin">
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Shield className="h-4 w-4" />
-                    Admin
-                  </Button>
-                </Link>
-                <Link to="/logs">
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <ScrollText className="h-4 w-4" />
-                    Logs
-                  </Button>
-                </Link>
-              </>
-            )}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={signOut}
-              className="gap-2 text-muted-foreground"
-            >
-              <LogOut className="h-4 w-4" />
-              Sair
-            </Button>
           </div>
         </div>
       </header>
