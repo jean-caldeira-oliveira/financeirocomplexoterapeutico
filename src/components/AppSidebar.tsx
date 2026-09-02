@@ -51,6 +51,7 @@ import {
   Package,
   PartyPopper,
   Plane,
+  Presentation,
   Receipt,
   Scale,
   ScrollText,
@@ -165,9 +166,20 @@ function buildNavItems(isAdmin: boolean): NavEntry[] {
     icon: Boxes,
     badge: "Em construção",
     subItems: [
+      { to: "/estoque/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { to: "/estoque/alimentos", label: "Alimentos", icon: Apple },
       { to: "/estoque/produtos-e-materiais", label: "Produtos e materiais", icon: Package },
       { to: "/estoque/manutencoes", label: "Manutenções", icon: Wrench },
+    ],
+  },
+  {
+    to: "/consultorias",
+    label: "Consultorias",
+    icon: Presentation,
+    badge: "Em construção",
+    subItems: [
+      { to: "/consultorias/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { to: "/consultorias/acompanhamentos", label: "Acompanhamentos", icon: ClipboardList },
     ],
   },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3, badge: "Em Refinamento" },
