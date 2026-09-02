@@ -54,6 +54,12 @@ const Psicologia = lazy(() => import("./pages/saude/Psicologia"));
 const Psiquiatria = lazy(() => import("./pages/saude/Psiquiatria"));
 const Enfermaria = lazy(() => import("./pages/saude/Enfermaria"));
 const HistoricoDosPacientes = lazy(() => import("./pages/saude/HistoricoDosPacientes"));
+const AssistenciaSocial = lazy(() => import("./pages/operacional/AssistenciaSocial"));
+const Terapeutica = lazy(() => import("./pages/operacional/Terapeutica"));
+const VigilanciaSanitaria = lazy(() => import("./pages/fiscalizacoes/VigilanciaSanitaria"));
+const MinisterioDoTrabalho = lazy(() => import("./pages/fiscalizacoes/MinisterioDoTrabalho"));
+const Conselhos = lazy(() => import("./pages/fiscalizacoes/Conselhos"));
+const MinisterioPublico = lazy(() => import("./pages/fiscalizacoes/MinisterioPublico"));
 const Lavanderia = lazy(() => import("./pages/Lavanderia"));
 const Cantina = lazy(() => import("./pages/Cantina"));
 const Auth = lazy(() => import("./pages/Auth"));
@@ -478,6 +484,54 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <HistoricoDosPacientes />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/operacional/assistencia-social"
+              element={
+                <ProtectedRoute>
+                  <AssistenciaSocial />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/operacional/terapeutica"
+              element={
+                <ProtectedRoute>
+                  <Terapeutica />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/fiscalizacoes/vigilancia-sanitaria"
+              element={
+                <ProtectedRoute>
+                  <VigilanciaSanitaria />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/fiscalizacoes/ministerio-do-trabalho"
+              element={
+                <ProtectedRoute>
+                  <MinisterioDoTrabalho />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/fiscalizacoes/conselhos"
+              element={
+                <ProtectedRoute>
+                  <Conselhos />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/fiscalizacoes/ministerio-publico"
+              element={
+                <ProtectedRoute>
+                  <MinisterioPublico />
                 </ProtectedRoute>
               }
             />
