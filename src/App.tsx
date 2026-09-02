@@ -43,6 +43,9 @@ const Acompanhamentos = lazy(() => import("./pages/rh/Acompanhamentos"));
 const Treinamentos = lazy(() => import("./pages/rh/Treinamentos"));
 const BancoTalentos = lazy(() => import("./pages/rh/BancoTalentos"));
 const ServicosDashboard = lazy(() => import("./pages/servicos/ServicosDashboard"));
+const Alimentos = lazy(() => import("./pages/estoque/Alimentos"));
+const ProdutosEMateriais = lazy(() => import("./pages/estoque/ProdutosEMateriais"));
+const Manutencoes = lazy(() => import("./pages/estoque/Manutencoes"));
 const Lavanderia = lazy(() => import("./pages/Lavanderia"));
 const Cantina = lazy(() => import("./pages/Cantina"));
 const Auth = lazy(() => import("./pages/Auth"));
@@ -379,6 +382,30 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Cantina />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/estoque/alimentos"
+              element={
+                <ProtectedRoute>
+                  <Alimentos />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/estoque/produtos-e-materiais"
+              element={
+                <ProtectedRoute>
+                  <ProdutosEMateriais />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/estoque/manutencoes"
+              element={
+                <ProtectedRoute>
+                  <Manutencoes />
                 </ProtectedRoute>
               }
             />

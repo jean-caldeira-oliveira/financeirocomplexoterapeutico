@@ -25,10 +25,12 @@ import { usePatients } from "@/hooks/usePatients";
 import { isContractFinished } from "@/utils/patientContract";
 import { useMemo, useState } from "react";
 import {
+  Apple,
   ArrowDownToLine,
   ArrowLeftRight,
   ArrowUpFromLine,
   BarChart3,
+  Boxes,
   BriefcaseBusiness,
   Building2,
   CalendarDays,
@@ -46,6 +48,7 @@ import {
   LifeBuoy,
   LogOut,
   Megaphone,
+  Package,
   PartyPopper,
   Plane,
   Receipt,
@@ -154,6 +157,17 @@ function buildNavItems(isAdmin: boolean): NavEntry[] {
       { to: "/servicos/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { to: "/lavanderia", label: "Lavanderia", icon: Shirt },
       { to: "/cantina", label: "Cantina", icon: UtensilsCrossed },
+    ],
+  },
+  {
+    to: "/estoque",
+    label: "Estoque / Almoxarifado",
+    icon: Boxes,
+    badge: "Em construção",
+    subItems: [
+      { to: "/estoque/alimentos", label: "Alimentos", icon: Apple },
+      { to: "/estoque/produtos-e-materiais", label: "Produtos e materiais", icon: Package },
+      { to: "/estoque/manutencoes", label: "Manutenções", icon: Wrench },
     ],
   },
   { to: "/relatorios", label: "Relatórios", icon: BarChart3, badge: "Em Refinamento" },
