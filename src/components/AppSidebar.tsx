@@ -110,6 +110,7 @@ function buildNavItems(isAdmin: boolean): NavEntry[] {
     icon: Building2,
     badge: "Em construção",
     subItems: [
+      { to: "/administrativo/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { to: "/administrativo/contratos", label: "Contratos", icon: FileSignature },
       { to: "/administrativo/agenda", label: "Agenda", icon: CalendarDays },
       { to: "/administrativo/cobrancas", label: "Cobranças", icon: Receipt },
@@ -150,6 +151,7 @@ function buildNavItems(isAdmin: boolean): NavEntry[] {
     icon: ConciergeBell,
     badge: "Em construção",
     subItems: [
+      { to: "/servicos/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { to: "/lavanderia", label: "Lavanderia", icon: Shirt },
       { to: "/cantina", label: "Cantina", icon: UtensilsCrossed },
     ],
@@ -160,6 +162,7 @@ function buildNavItems(isAdmin: boolean): NavEntry[] {
     label: "TI",
     icon: Wrench,
     subItems: [
+      { to: "/ti/dashboard", label: "Dashboard", icon: LayoutDashboard },
       { to: "/suporte", label: "Chamados", icon: LifeBuoy },
       { to: "/ti/versoes", label: "Versões", icon: Tag, badge: "Em construção" },
       ...(isAdmin

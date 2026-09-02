@@ -24,6 +24,7 @@ const Orcamento = lazy(() => import("./pages/Orcamento"));
 const Marketing = lazy(() => import("./pages/Marketing"));
 const Leads = lazy(() => import("./pages/Leads"));
 const Materiais = lazy(() => import("./pages/comercial/Materiais"));
+const AdministrativoDashboard = lazy(() => import("./pages/administrativo/AdministrativoDashboard"));
 const Contratos = lazy(() => import("./pages/administrativo/Contratos"));
 const AdministrativoAgenda = lazy(() => import("./pages/administrativo/Agenda"));
 const AdministrativoCobrancas = lazy(() => import("./pages/administrativo/Cobrancas"));
@@ -41,11 +42,13 @@ const PontoJornada = lazy(() => import("./pages/rh/PontoJornada"));
 const Acompanhamentos = lazy(() => import("./pages/rh/Acompanhamentos"));
 const Treinamentos = lazy(() => import("./pages/rh/Treinamentos"));
 const BancoTalentos = lazy(() => import("./pages/rh/BancoTalentos"));
+const ServicosDashboard = lazy(() => import("./pages/servicos/ServicosDashboard"));
 const Lavanderia = lazy(() => import("./pages/Lavanderia"));
 const Cantina = lazy(() => import("./pages/Cantina"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Admin = lazy(() => import("./pages/Admin"));
 const Support = lazy(() => import("./pages/Support"));
+const TIDashboard = lazy(() => import("./pages/ti/TIDashboard"));
 const Versoes = lazy(() => import("./pages/ti/Versoes"));
 const AuditLog = lazy(() => import("./pages/AuditLog"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -211,6 +214,14 @@ const App = () => (
               }
             />
             <Route
+              path="/administrativo/dashboard"
+              element={
+                <ProtectedRoute>
+                  <AdministrativoDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/administrativo/contratos"
               element={
                 <ProtectedRoute>
@@ -348,6 +359,14 @@ const App = () => (
               }
             />
             <Route
+              path="/servicos/dashboard"
+              element={
+                <ProtectedRoute>
+                  <ServicosDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
               path="/lavanderia"
               element={
                 <ProtectedRoute>
@@ -360,6 +379,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Cantina />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/ti/dashboard"
+              element={
+                <ProtectedRoute>
+                  <TIDashboard />
                 </ProtectedRoute>
               }
             />
