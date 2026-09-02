@@ -133,6 +133,7 @@ function buildNavItems(isAdmin: boolean): NavEntry[] {
       { to: "/administrativo/cobrancas", label: "Cobranças", icon: Receipt },
       { to: "/administrativo/caixa-pacientes", label: "Caixa Pacientes", icon: Wallet },
       { to: "/administrativo/eventos", label: "Eventos", icon: PartyPopper },
+      { to: "/administrativo/sistema-familiares", label: "Sistema Familiares", icon: Users, badge: "Em construção" },
     ],
   },
   {

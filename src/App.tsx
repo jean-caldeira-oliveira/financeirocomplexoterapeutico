@@ -30,6 +30,7 @@ const AdministrativoAgenda = lazy(() => import("./pages/administrativo/Agenda"))
 const AdministrativoCobrancas = lazy(() => import("./pages/administrativo/Cobrancas"));
 const CaixaPacientes = lazy(() => import("./pages/administrativo/CaixaPacientes"));
 const Eventos = lazy(() => import("./pages/administrativo/Eventos"));
+const SistemaFamiliares = lazy(() => import("./pages/administrativo/SistemaFamiliares"));
 const JuridicoDashboard = lazy(() => import("./pages/juridico/JuridicoDashboard"));
 const Ativos = lazy(() => import("./pages/juridico/Ativos"));
 const Passivos = lazy(() => import("./pages/juridico/Passivos"));
@@ -275,6 +276,14 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Eventos />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/administrativo/sistema-familiares"
+              element={
+                <ProtectedRoute>
+                  <SistemaFamiliares />
                 </ProtectedRoute>
               }
             />
