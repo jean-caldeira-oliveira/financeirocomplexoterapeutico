@@ -23,7 +23,8 @@ const DashboardComercial = lazy(() => import("./pages/DashboardComercial"));
 const Orcamento = lazy(() => import("./pages/Orcamento"));
 const Marketing = lazy(() => import("./pages/Marketing"));
 const Leads = lazy(() => import("./pages/Leads"));
-const MateriaisDeApoio = lazy(() => import("./pages/comercial/MateriaisDeApoio"));
+const Materiais = lazy(() => import("./pages/comercial/Materiais"));
+const Administrativo = lazy(() => import("./pages/Administrativo"));
 const JuridicoDashboard = lazy(() => import("./pages/juridico/JuridicoDashboard"));
 const Ativos = lazy(() => import("./pages/juridico/Ativos"));
 const Passivos = lazy(() => import("./pages/juridico/Passivos"));
@@ -198,10 +199,18 @@ const App = () => (
               }
             />
             <Route
-              path="/comercial/materiais-de-apoio"
+              path="/comercial/materiais"
               element={
                 <ProtectedRoute>
-                  <MateriaisDeApoio />
+                  <Materiais />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/administrativo"
+              element={
+                <ProtectedRoute>
+                  <Administrativo />
                 </ProtectedRoute>
               }
             />
