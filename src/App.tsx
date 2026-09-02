@@ -49,6 +49,11 @@ const ProdutosEMateriais = lazy(() => import("./pages/estoque/ProdutosEMateriais
 const Manutencoes = lazy(() => import("./pages/estoque/Manutencoes"));
 const ConsultoriasDashboard = lazy(() => import("./pages/consultorias/ConsultoriasDashboard"));
 const ConsultoriasAcompanhamentos = lazy(() => import("./pages/consultorias/Acompanhamentos"));
+const ClinicoGeral = lazy(() => import("./pages/saude/ClinicoGeral"));
+const Psicologia = lazy(() => import("./pages/saude/Psicologia"));
+const Psiquiatria = lazy(() => import("./pages/saude/Psiquiatria"));
+const Enfermaria = lazy(() => import("./pages/saude/Enfermaria"));
+const HistoricoDosPacientes = lazy(() => import("./pages/saude/HistoricoDosPacientes"));
 const Lavanderia = lazy(() => import("./pages/Lavanderia"));
 const Cantina = lazy(() => import("./pages/Cantina"));
 const Auth = lazy(() => import("./pages/Auth"));
@@ -433,6 +438,46 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <ConsultoriasAcompanhamentos />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/saude/clinico-geral"
+              element={
+                <ProtectedRoute>
+                  <ClinicoGeral />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/saude/psicologia"
+              element={
+                <ProtectedRoute>
+                  <Psicologia />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/saude/psiquiatria"
+              element={
+                <ProtectedRoute>
+                  <Psiquiatria />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/saude/enfermaria"
+              element={
+                <ProtectedRoute>
+                  <Enfermaria />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/saude/historico-dos-pacientes"
+              element={
+                <ProtectedRoute>
+                  <HistoricoDosPacientes />
                 </ProtectedRoute>
               }
             />
