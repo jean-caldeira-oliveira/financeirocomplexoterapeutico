@@ -24,7 +24,11 @@ const Orcamento = lazy(() => import("./pages/Orcamento"));
 const Marketing = lazy(() => import("./pages/Marketing"));
 const Leads = lazy(() => import("./pages/Leads"));
 const Materiais = lazy(() => import("./pages/comercial/Materiais"));
-const Administrativo = lazy(() => import("./pages/Administrativo"));
+const Contratos = lazy(() => import("./pages/administrativo/Contratos"));
+const AdministrativoAgenda = lazy(() => import("./pages/administrativo/Agenda"));
+const AdministrativoCobrancas = lazy(() => import("./pages/administrativo/Cobrancas"));
+const CaixaPacientes = lazy(() => import("./pages/administrativo/CaixaPacientes"));
+const Eventos = lazy(() => import("./pages/administrativo/Eventos"));
 const JuridicoDashboard = lazy(() => import("./pages/juridico/JuridicoDashboard"));
 const Ativos = lazy(() => import("./pages/juridico/Ativos"));
 const Passivos = lazy(() => import("./pages/juridico/Passivos"));
@@ -207,10 +211,42 @@ const App = () => (
               }
             />
             <Route
-              path="/administrativo"
+              path="/administrativo/contratos"
               element={
                 <ProtectedRoute>
-                  <Administrativo />
+                  <Contratos />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/administrativo/agenda"
+              element={
+                <ProtectedRoute>
+                  <AdministrativoAgenda />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/administrativo/cobrancas"
+              element={
+                <ProtectedRoute>
+                  <AdministrativoCobrancas />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/administrativo/caixa-pacientes"
+              element={
+                <ProtectedRoute>
+                  <CaixaPacientes />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/administrativo/eventos"
+              element={
+                <ProtectedRoute>
+                  <Eventos />
                 </ProtectedRoute>
               }
             />
