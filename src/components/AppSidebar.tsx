@@ -175,7 +175,7 @@ function buildNavItems(isAdmin: boolean): NavEntry[] {
   },
   {
     to: "/estoque",
-    label: "Estoque / Almoxarifado",
+    label: "Suprimentos",
     icon: Boxes,
     badge: "Em construção",
     subItems: [
