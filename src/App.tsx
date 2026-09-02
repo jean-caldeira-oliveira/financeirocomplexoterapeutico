@@ -18,6 +18,8 @@ const Bills = lazy(() => import("./pages/Bills"));
 const Reports = lazy(() => import("./pages/Reports"));
 const Fornecedores = lazy(() => import("./pages/Fornecedores"));
 const Colaboradores = lazy(() => import("./pages/Colaboradores"));
+const PlanoDeContas = lazy(() => import("./pages/financeiro/PlanoDeContas"));
+const CentrosDeCusto = lazy(() => import("./pages/financeiro/CentrosDeCusto"));
 const Conciliacao = lazy(() => import("./pages/financeiro/Conciliacao"));
 const DashboardComercial = lazy(() => import("./pages/DashboardComercial"));
 const Orcamento = lazy(() => import("./pages/Orcamento"));
@@ -180,6 +182,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <Colaboradores />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/financeiro/plano-de-contas"
+              element={
+                <ProtectedRoute>
+                  <PlanoDeContas />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/financeiro/centros-de-custo"
+              element={
+                <ProtectedRoute>
+                  <CentrosDeCusto />
                 </ProtectedRoute>
               }
             />

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowLeft, Search, Settings2, UserCog, UserPlus } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Search, UserCog, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -14,8 +14,6 @@ import {
 import { EmployeeForm } from "@/components/employees/EmployeeForm";
 import { EmployeeTable } from "@/components/employees/EmployeeTable";
 import { TerminateEmployeeDialog } from "@/components/employees/TerminateEmployeeDialog";
-import { ChartOfAccountsDialog } from "@/components/registrations/ChartOfAccountsDialog";
-import { CostCentersDialog } from "@/components/registrations/CostCentersDialog";
 import { useEmployees } from "@/hooks/useEmployees";
 import { useChartOfAccounts } from "@/hooks/useChartOfAccounts";
 import { useCostCenters } from "@/hooks/useCostCenters";
@@ -24,18 +22,15 @@ import { Employee, EmployeeStatus } from "@/types/employee";
 type StatusFilter = "all" | EmployeeStatus;
 
 export default function Colaboradores() {
+  const navigate = useNavigate();
   const { employees, addEmployee, updateEmployee, setEmployeeStatus, deleteEmployee } =
     useEmployees();
-  const { accounts, activeAccounts, addAccount, updateAccount, deleteAccount } =
-    useChartOfAccounts();
-  const { costCenters, activeCostCenters, addCostCenter, updateCostCenter, deleteCostCenter } =
-    useCostCenters();
+  const { accounts, activeAccounts } = useChartOfAccounts();
+  const { costCenters, activeCostCenters } = useCostCenters();
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [terminatingEmployee, setTerminatingEmployee] = useState<Employee | null>(null);
-  const [accountsDialogOpen, setAccountsDialogOpen] = useState(false);
-  const [costCentersDialogOpen, setCostCentersDialogOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ativo");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -149,25 +144,6 @@ export default function Colaboradores() {
                 <SelectItem value="desligado">Desligados</SelectItem>
               </SelectContent>
             </Select>
-
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2"
-              onClick={() => setAccountsDialogOpen(true)}
-            >
-              <Settings2 className="h-4 w-4" />
-              Plano de Contas
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2"
-              onClick={() => setCostCentersDialogOpen(true)}
-            >
-              <Settings2 className="h-4 w-4" />
-              Centros de Custo
-            </Button>
           </div>
         </div>
 
@@ -207,8 +183,8 @@ export default function Colaboradores() {
         mode="create"
         accounts={activeAccounts}
         costCenters={activeCostCenters}
-        onManageAccounts={() => setAccountsDialogOpen(true)}
-        onManageCostCenters={() => setCostCentersDialogOpen(true)}
+        onManageAccounts={() => navigate("/financeiro/plano-de-contas")}
+        onManageCostCenters={() => navigate("/financeiro/centros-de-custo")}
         isDocumentTaken={isDocumentTaken}
       />
 
@@ -220,8 +196,8 @@ export default function Colaboradores() {
         mode="edit"
         accounts={activeAccounts}
         costCenters={activeCostCenters}
-        onManageAccounts={() => setAccountsDialogOpen(true)}
-        onManageCostCenters={() => setCostCentersDialogOpen(true)}
+        onManageAccounts={() => navigate("/financeiro/plano-de-contas")}
+        onManageCostCenters={() => navigate("/financeiro/centros-de-custo")}
         isDocumentTaken={isDocumentTaken}
       />
 
@@ -229,24 +205,6 @@ export default function Colaboradores() {
         employee={terminatingEmployee}
         onOpenChange={(open) => !open && setTerminatingEmployee(null)}
         onConfirm={handleConfirmTerminate}
-      />
-
-      <ChartOfAccountsDialog
-        open={accountsDialogOpen}
-        onOpenChange={setAccountsDialogOpen}
-        accounts={accounts}
-        onAdd={addAccount}
-        onUpdate={updateAccount}
-        onDelete={deleteAccount}
-      />
-
-      <CostCentersDialog
-        open={costCentersDialogOpen}
-        onOpenChange={setCostCentersDialogOpen}
-        costCenters={costCenters}
-        onAdd={addCostCenter}
-        onUpdate={updateCostCenter}
-        onDelete={deleteCostCenter}
       />
     </div>
   );

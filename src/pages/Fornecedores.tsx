@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowLeft, Search, Settings2, Truck, UserPlus } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Search, Truck, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -13,8 +13,6 @@ import {
 } from "@/components/ui/select";
 import { SupplierForm } from "@/components/suppliers/SupplierForm";
 import { SupplierTable } from "@/components/suppliers/SupplierTable";
-import { ChartOfAccountsDialog } from "@/components/registrations/ChartOfAccountsDialog";
-import { CostCentersDialog } from "@/components/registrations/CostCentersDialog";
 import { useSuppliers } from "@/hooks/useSuppliers";
 import { useChartOfAccounts } from "@/hooks/useChartOfAccounts";
 import { useCostCenters } from "@/hooks/useCostCenters";
@@ -23,17 +21,14 @@ import { Supplier } from "@/types/supplier";
 type StatusFilter = "all" | "ativo" | "inativo";
 
 export default function Fornecedores() {
+  const navigate = useNavigate();
   const { suppliers, addSupplier, updateSupplier, toggleSupplierStatus, deleteSupplier } =
     useSuppliers();
-  const { accounts, activeAccounts, addAccount, updateAccount, deleteAccount } =
-    useChartOfAccounts();
-  const { costCenters, activeCostCenters, addCostCenter, updateCostCenter, deleteCostCenter } =
-    useCostCenters();
+  const { accounts, activeAccounts } = useChartOfAccounts();
+  const { costCenters, activeCostCenters } = useCostCenters();
 
   const [formOpen, setFormOpen] = useState(false);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
-  const [accountsDialogOpen, setAccountsDialogOpen] = useState(false);
-  const [costCentersDialogOpen, setCostCentersDialogOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ativo");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -132,25 +127,6 @@ export default function Fornecedores() {
                 <SelectItem value="inativo">Inativos</SelectItem>
               </SelectContent>
             </Select>
-
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2"
-              onClick={() => setAccountsDialogOpen(true)}
-            >
-              <Settings2 className="h-4 w-4" />
-              Plano de Contas
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-2"
-              onClick={() => setCostCentersDialogOpen(true)}
-            >
-              <Settings2 className="h-4 w-4" />
-              Centros de Custo
-            </Button>
           </div>
         </div>
 
@@ -189,8 +165,8 @@ export default function Fornecedores() {
         mode="create"
         accounts={activeAccounts}
         costCenters={activeCostCenters}
-        onManageAccounts={() => setAccountsDialogOpen(true)}
-        onManageCostCenters={() => setCostCentersDialogOpen(true)}
+        onManageAccounts={() => navigate("/financeiro/plano-de-contas")}
+        onManageCostCenters={() => navigate("/financeiro/centros-de-custo")}
         isDocumentTaken={isDocumentTaken}
       />
 
@@ -202,27 +178,9 @@ export default function Fornecedores() {
         mode="edit"
         accounts={activeAccounts}
         costCenters={activeCostCenters}
-        onManageAccounts={() => setAccountsDialogOpen(true)}
-        onManageCostCenters={() => setCostCentersDialogOpen(true)}
+        onManageAccounts={() => navigate("/financeiro/plano-de-contas")}
+        onManageCostCenters={() => navigate("/financeiro/centros-de-custo")}
         isDocumentTaken={isDocumentTaken}
-      />
-
-      <ChartOfAccountsDialog
-        open={accountsDialogOpen}
-        onOpenChange={setAccountsDialogOpen}
-        accounts={accounts}
-        onAdd={addAccount}
-        onUpdate={updateAccount}
-        onDelete={deleteAccount}
-      />
-
-      <CostCentersDialog
-        open={costCentersDialogOpen}
-        onOpenChange={setCostCentersDialogOpen}
-        costCenters={costCenters}
-        onAdd={addCostCenter}
-        onUpdate={updateCostCenter}
-        onDelete={deleteCostCenter}
       />
     </div>
   );

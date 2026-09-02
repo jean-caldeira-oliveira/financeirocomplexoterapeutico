@@ -106,6 +106,8 @@ function buildNavItems(isAdmin: boolean): NavEntry[] {
       { to: "/contas", label: "Contas", icon: FileText },
       { to: "/fornecedores", label: "Fornecedores", icon: Truck },
       { to: "/colaboradores", label: "Colaboradores", icon: UserCog },
+      { to: "/financeiro/plano-de-contas", label: "Plano de Contas", icon: Settings2 },
+      { to: "/financeiro/centros-de-custo", label: "Centros de Custo", icon: Landmark },
       { to: "/financeiro/conciliacao", label: "Conciliação", icon: ArrowLeftRight, badge: "Em construção" },
     ],
   },
